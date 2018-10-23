@@ -17,6 +17,7 @@ BREAKING CHANGES
 FEATURES
 
 * Gaia REST API (`gaiacli advanced rest-server`)
+    * [gaia-lite] [\#2182] Added LCD endpoint for querying redelegations
 
 * Gaia CLI  (`gaiacli`)
     * [cli] [\#2569](https://github.com/cosmos/cosmos-sdk/pull/2569) Add commands to query validator unbondings and redelegations
@@ -25,6 +26,8 @@ FEATURES
     * [cli] [\#2558](https://github.com/cosmos/cosmos-sdk/issues/2558) Rename --print-sigs to --validate-signatures. It now performs a complete set of sanity checks and reports to the user. Also added --print-signature-only to print the signature only, not the whole transaction.
 
 * Gaia
+
+    * [\#2182] [x/stake] Added querier for querying a single redelegation
 
 * SDK
     * (#1336) Mechanism for SDK Users to configure their own Bech32 prefixes instead of using the default cosmos prefixes.
