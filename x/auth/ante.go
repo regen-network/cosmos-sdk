@@ -11,32 +11,33 @@ import (
 )
 
 const (
-  maxMemoCharacters =   100
 )
 
-type AnteFeeConfig struct {
+type AnteConfig struct {
 	MemoCostPerByte     sdk.Gas
 	Ed25519VerifyCost   sdk.Gas
 	Secp256k1VerifyCost sdk.Gas
 	// how much gas = 1 atom
 	GasPerUnitCost sdk.Gas
+	MaxMemoCharacters int
 }
 
-var DefaultAnteFeeConfig = AnteFeeConfig{
+var DefaultAnteConfig = AnteConfig{
 	MemoCostPerByte:     1,
 	Ed25519VerifyCost:   59,
 	Secp256k1VerifyCost: 100,
 	GasPerUnitCost:      1000,
+	MaxMemoCharacters: 100,
 }
 
 // NewAnteHandler returns an AnteHandler that checks
 // and increments sequence numbers, checks signatures & account numbers,
 // and deducts fees from the first signer.
 func NewAnteHandler(am AccountKeeper, fck FeeCollectionKeeper) sdk.AnteHandler {
-	return NewAnteHandlerCustom(am, fck, DefaultAnteFeeConfig)
+	return NewAnteHandlerCustom(am, fck, DefaultAnteConfig)
 }
 
-func NewAnteHandlerCustom(am AccountKeeper, fck FeeCollectionKeeper, feeConfig AnteFeeConfig) sdk.AnteHandler {
+func NewAnteHandlerCustom(am AccountKeeper, fck FeeCollectionKeeper, anteConfig AnteConfig) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, simulate bool,
 	) (newCtx sdk.Context, res sdk.Result, abort bool) {
@@ -50,7 +51,7 @@ func NewAnteHandlerCustom(am AccountKeeper, fck FeeCollectionKeeper, feeConfig A
 		// Ensure that the provided fees meet a minimum threshold for the validator, if this is a CheckTx.
 		// This is only for local mempool purposes, and thus is only ran on check tx.
 		if ctx.IsCheckTx() && !simulate {
-			res := ensureSufficientMempoolFees(ctx, stdTx, &feeConfig)
+			res := ensureSufficientMempoolFees(ctx, stdTx, &anteConfig)
 			if !res.IsOK() {
 				return newCtx, res, true
 			}
@@ -77,12 +78,12 @@ func NewAnteHandlerCustom(am AccountKeeper, fck FeeCollectionKeeper, feeConfig A
 			}
 		}()
 
-		err := validateBasic(stdTx)
+		err := validateBasic(stdTx, &anteConfig)
 		if err != nil {
 			return newCtx, err.Result(), true
 		}
 		// charge gas for the memo
-		newCtx.GasMeter().ConsumeGas(feeConfig.MemoCostPerByte*sdk.Gas(len(stdTx.GetMemo())), "memo")
+		newCtx.GasMeter().ConsumeGas(anteConfig.MemoCostPerByte*sdk.Gas(len(stdTx.GetMemo())), "memo")
 
 		// stdSigs contains the sequence number, account number, and signatures
 		stdSigs := stdTx.GetSignatures() // When simulating, this would just be a 0-length slice.
@@ -111,7 +112,7 @@ func NewAnteHandlerCustom(am AccountKeeper, fck FeeCollectionKeeper, feeConfig A
 
 		for i := 0; i < len(stdSigs); i++ {
 			// check signature, return account with incremented nonce
-			signerAccs[i], res = processSig(newCtx, signerAccs[i], stdSigs[i], signBytesList[i], simulate, &feeConfig)
+			signerAccs[i], res = processSig(newCtx, signerAccs[i], stdSigs[i], signBytesList[i], simulate, &anteConfig)
 			if !res.IsOK() {
 				return newCtx, res, true
 			}
@@ -129,7 +130,7 @@ func NewAnteHandlerCustom(am AccountKeeper, fck FeeCollectionKeeper, feeConfig A
 }
 
 // Validate the transaction based on things that don't depend on the context
-func validateBasic(tx StdTx) (err sdk.Error) {
+func validateBasic(tx StdTx, anteConfig *AnteConfig) (err sdk.Error) {
 	// Assert that there are signatures.
 	sigs := tx.GetSignatures()
 	if len(sigs) == 0 {
@@ -143,10 +144,10 @@ func validateBasic(tx StdTx) (err sdk.Error) {
 	}
 
 	memo := tx.GetMemo()
-	if len(memo) > maxMemoCharacters {
+	if len(memo) > anteConfig.MaxMemoCharacters {
 		return sdk.ErrMemoTooLarge(
 			fmt.Sprintf("maximum number of characters is %d but received %d characters",
-				maxMemoCharacters, len(memo)))
+				anteConfig.MaxMemoCharacters, len(memo)))
 	}
 	return nil
 }
@@ -190,7 +191,7 @@ func validateAccNumAndSequence(ctx sdk.Context, accs []Account, sigs []StdSignat
 // verify the signature and increment the sequence.
 // if the account doesn't have a pubkey, set it.
 func processSig(ctx sdk.Context,
-	acc Account, sig StdSignature, signBytes []byte, simulate bool, feeConfig *AnteFeeConfig) (updatedAcc Account, res sdk.Result) {
+	acc Account, sig StdSignature, signBytes []byte, simulate bool, anteConfig *AnteConfig) (updatedAcc Account, res sdk.Result) {
 	pubKey, res := processPubKey(acc, sig, simulate)
 	if !res.IsOK() {
 		return nil, res
@@ -200,7 +201,7 @@ func processSig(ctx sdk.Context,
 		return nil, sdk.ErrInternal("setting PubKey on signer's account").Result()
 	}
 
-	consumeSignatureVerificationGas(ctx.GasMeter(), pubKey, feeConfig)
+	consumeSignatureVerificationGas(ctx.GasMeter(), pubKey, anteConfig)
 	if !simulate && !pubKey.VerifyBytes(signBytes, sig.Signature) {
 		return nil, sdk.ErrUnauthorized("signature verification failed").Result()
 	}
@@ -249,19 +250,19 @@ func processPubKey(acc Account, sig StdSignature, simulate bool) (crypto.PubKey,
 	return pubKey, sdk.Result{}
 }
 
-func consumeSignatureVerificationGas(meter sdk.GasMeter, pubkey crypto.PubKey, feeConfig *AnteFeeConfig) {
+func consumeSignatureVerificationGas(meter sdk.GasMeter, pubkey crypto.PubKey, anteConfig *AnteConfig) {
 	switch pubkey.(type) {
 	case ed25519.PubKeyEd25519:
-		meter.ConsumeGas(feeConfig.Ed25519VerifyCost, "ante verify: ed25519")
+		meter.ConsumeGas(anteConfig.Ed25519VerifyCost, "ante verify: ed25519")
 	case secp256k1.PubKeySecp256k1:
-		meter.ConsumeGas(feeConfig.Secp256k1VerifyCost, "ante verify: secp256k1")
+		meter.ConsumeGas(anteConfig.Secp256k1VerifyCost, "ante verify: secp256k1")
 	default:
 		panic("Unrecognized signature type")
 	}
 }
 
-func adjustFeesByGas(fees sdk.Coins, gas int64, feeConfig *AnteFeeConfig) sdk.Coins {
-	gasCost := gas / feeConfig.GasPerUnitCost
+func adjustFeesByGas(fees sdk.Coins, gas int64, anteConfig *AnteConfig) sdk.Coins {
+	gasCost := gas / anteConfig.GasPerUnitCost
 	gasFees := make(sdk.Coins, len(fees))
 	// TODO: Make this not price all coins in the same way
 	for i := 0; i < len(fees); i++ {
@@ -290,11 +291,11 @@ func deductFees(acc Account, fee StdFee) (Account, sdk.Result) {
 	return acc, sdk.Result{}
 }
 
-func ensureSufficientMempoolFees(ctx sdk.Context, stdTx StdTx, feeConfig *AnteFeeConfig) sdk.Result {
+func ensureSufficientMempoolFees(ctx sdk.Context, stdTx StdTx, anteConfig *AnteConfig) sdk.Result {
 	// currently we use a very primitive gas pricing model with a constant gasPrice.
 	// adjustFeesByGas handles calculating the amount of fees required based on the provided gas.
 	// TODO: Make the gasPrice not a constant, and account for tx size.
-	requiredFees := adjustFeesByGas(ctx.MinimumFees(), stdTx.Fee.Gas, feeConfig)
+	requiredFees := adjustFeesByGas(ctx.MinimumFees(), stdTx.Fee.Gas, anteConfig)
 
 	// NOTE: !A.IsAllGTE(B) is not the same as A.IsAllLT(B).
 	if !ctx.MinimumFees().IsZero() && !stdTx.Fee.Amount.IsAllGTE(requiredFees) {
