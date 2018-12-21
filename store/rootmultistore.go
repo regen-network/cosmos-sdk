@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"strings"
@@ -202,10 +203,12 @@ func (rs *rootMultiStore) Commit() CommitID {
 	setLatestVersion(batch, version)
 	batch.Write()
 
+	hash := commitInfo.Hash()
+	fmt.Printf("Commit() version=%d hash=%s", version, hex.EncodeToString(hash))
 	// Prepare for next version.
 	commitID := CommitID{
 		Version: version,
-		Hash:    commitInfo.Hash(),
+		Hash:    hash,
 	}
 	rs.lastCommitID = commitID
 	return commitID
