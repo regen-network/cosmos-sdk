@@ -3,6 +3,7 @@ package context
 import (
 	"bytes"
 	"fmt"
+	"github.com/tendermint/tendermint/rpc/core/types"
 	"io"
 	"os"
 	"path/filepath"
@@ -28,28 +29,31 @@ var (
 	verifier tmlite.Verifier
 )
 
+type ResponseHandler = func(res *core_types.ResultBroadcastTxCommit)
+
 // CLIContext implements a typical CLI context created in SDK modules for
 // transaction handling and queries.
 type CLIContext struct {
-	Codec         *codec.Codec
-	AccDecoder    auth.AccountDecoder
-	Client        rpcclient.Client
-	Output        io.Writer
-	Height        int64
-	NodeURI       string
-	From          string
-	AccountStore  string
-	TrustNode     bool
-	UseLedger     bool
-	Async         bool
-	JSON          bool
-	PrintResponse bool
-	Verifier      tmlite.Verifier
-	Simulate      bool
-	GenerateOnly  bool
-	fromAddress   types.AccAddress
-	fromName      string
-	Indent        bool
+	Codec           *codec.Codec
+	AccDecoder      auth.AccountDecoder
+	Client          rpcclient.Client
+	Output          io.Writer
+	Height          int64
+	NodeURI         string
+	From            string
+	AccountStore    string
+	TrustNode       bool
+	UseLedger       bool
+	Async           bool
+	JSON            bool
+	PrintResponse   bool
+	ResponseHandler ResponseHandler
+	Verifier        tmlite.Verifier
+	Simulate        bool
+	GenerateOnly    bool
+	fromAddress     types.AccAddress
+	fromName        string
+	Indent          bool
 }
 
 // NewCLIContext returns a new initialized CLIContext with parameters from the
