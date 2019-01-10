@@ -29,7 +29,7 @@ var (
 	verifier tmlite.Verifier
 )
 
-type ResponseHandler = func(res *core_types.ResultBroadcastTxCommit)
+type ResponsePrinter = func(res *core_types.ResultBroadcastTxCommit) string
 
 // CLIContext implements a typical CLI context created in SDK modules for
 // transaction handling and queries.
@@ -47,7 +47,7 @@ type CLIContext struct {
 	Async           bool
 	JSON            bool
 	PrintResponse   bool
-	ResponseHandler ResponseHandler
+	ResponsePrinter ResponsePrinter
 	Verifier        tmlite.Verifier
 	Simulate        bool
 	GenerateOnly    bool
