@@ -280,37 +280,6 @@ func (tp TextProposal) String() string {
 `, tp.Title, tp.Description)
 }
 
-// Software Upgrade Proposals
-// TODO: We have to add fields for SUP specific arguments e.g. commit hash,
-// upgrade date, etc.
-type SoftwareUpgradeProposal struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-}
-
-func NewSoftwareUpgradeProposal(title, description string) Content {
-	return SoftwareUpgradeProposal{title, description}
-}
-
-// Implements Proposal Interface
-var _ Content = SoftwareUpgradeProposal{}
-
-// nolint
-func (sup SoftwareUpgradeProposal) GetTitle() string       { return sup.Title }
-func (sup SoftwareUpgradeProposal) GetDescription() string { return sup.Description }
-func (sup SoftwareUpgradeProposal) ProposalRoute() string  { return RouterKey }
-func (sup SoftwareUpgradeProposal) ProposalType() string   { return ProposalTypeSoftwareUpgrade }
-func (sup SoftwareUpgradeProposal) ValidateBasic() sdk.Error {
-	return ValidateAbstract(DefaultCodespace, sup)
-}
-
-func (sup SoftwareUpgradeProposal) String() string {
-	return fmt.Sprintf(`Software Upgrade Proposal:
-  Title:       %s
-  Description: %s
-`, sup.Title, sup.Description)
-}
-
 var validProposalTypes = map[string]struct{}{
 	ProposalTypeText:            {},
 	ProposalTypeSoftwareUpgrade: {},
@@ -332,9 +301,6 @@ func ContentFromProposalType(title, desc, ty string) Content {
 	case ProposalTypeText:
 		return NewTextProposal(title, desc)
 
-	case ProposalTypeSoftwareUpgrade:
-		return NewSoftwareUpgradeProposal(title, desc)
-
 	default:
 		return nil
 	}
@@ -355,7 +321,7 @@ func IsValidProposalType(ty string) bool {
 // performs a no-op.
 func ProposalHandler(_ sdk.Context, c Content) sdk.Error {
 	switch c.ProposalType() {
-	case ProposalTypeText, ProposalTypeSoftwareUpgrade:
+	case ProposalTypeText:
 		// both proposal types do not change state so this performs a no-op
 		return nil
 
