@@ -193,7 +193,7 @@ func NewSimApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bo
 	// During begin block slashing happens after distr.BeginBlocker so that
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
-	app.mm.SetOrderBeginBlockers(mint.ModuleName, distr.ModuleName, slashing.ModuleName)
+	app.mm.SetOrderBeginBlockers(upgrade.ModuleName, mint.ModuleName, distr.ModuleName, slashing.ModuleName)
 
 	app.mm.SetOrderEndBlockers(gov.ModuleName, staking.ModuleName)
 
@@ -209,7 +209,8 @@ func NewSimApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bo
 	// initialize stores
 	app.MountStores(app.keyMain, app.keyAccount, app.keyStaking, app.keyMint,
 		app.keyDistr, app.keySlashing, app.keyGov, app.keyFeeCollection,
-		app.keyParams, app.tkeyParams, app.tkeyStaking, app.tkeyDistr)
+		app.keyParams, app.tkeyParams, app.tkeyStaking, app.tkeyDistr,
+		app.keyUpgrade)
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
