@@ -14,7 +14,10 @@ var (
 	_ sdk.AppModuleBasic = AppModuleBasic{}
 )
 
-const ModuleName = "upgrade"
+const (
+	ModuleName = "upgrade"
+	StoreKey   = ModuleName
+)
 
 // app module basics object
 type AppModuleBasic struct{}

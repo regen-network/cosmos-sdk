@@ -38,7 +38,6 @@ const (
 	StatusRejected               = types.StatusRejected
 	StatusFailed                 = types.StatusFailed
 	ProposalTypeText             = types.ProposalTypeText
-	ProposalTypeSoftwareUpgrade  = types.ProposalTypeSoftwareUpgrade
 	OptionEmpty                  = types.OptionEmpty
 	OptionYes                    = types.OptionYes
 	OptionAbstain                = types.OptionAbstain
@@ -80,7 +79,6 @@ var (
 	NewTallyResultFromMap            = types.NewTallyResultFromMap
 	EmptyTallyResult                 = types.EmptyTallyResult
 	NewTextProposal                  = types.NewTextProposal
-	NewSoftwareUpgradeProposal       = types.NewSoftwareUpgradeProposal
 	RegisterProposalType             = types.RegisterProposalType
 	ContentFromProposalType          = types.ContentFromProposalType
 	IsValidProposalType              = types.IsValidProposalType
@@ -97,21 +95,20 @@ var (
 )
 
 type (
-	Content                 = types.Content
-	Handler                 = types.Handler
-	Deposit                 = types.Deposit
-	Deposits                = types.Deposits
-	MsgSubmitProposal       = types.MsgSubmitProposal
-	MsgDeposit              = types.MsgDeposit
-	MsgVote                 = types.MsgVote
-	Proposal                = types.Proposal
-	Proposals               = types.Proposals
-	ProposalQueue           = types.ProposalQueue
-	ProposalStatus          = types.ProposalStatus
-	TallyResult             = types.TallyResult
-	TextProposal            = types.TextProposal
-	SoftwareUpgradeProposal = types.SoftwareUpgradeProposal
-	Vote                    = types.Vote
-	Votes                   = types.Votes
-	VoteOption              = types.VoteOption
+	Content           = types.Content
+	Handler           = types.Handler
+	Deposit           = types.Deposit
+	Deposits          = types.Deposits
+	MsgSubmitProposal = types.MsgSubmitProposal
+	MsgDeposit        = types.MsgDeposit
+	MsgVote           = types.MsgVote
+	Proposal          = types.Proposal
+	Proposals         = types.Proposals
+	ProposalQueue     = types.ProposalQueue
+	ProposalStatus    = types.ProposalStatus
+	TallyResult       = types.TallyResult
+	TextProposal      = types.TextProposal
+	Vote              = types.Vote
+	Votes             = types.Votes
+	VoteOption        = types.VoteOption
 )

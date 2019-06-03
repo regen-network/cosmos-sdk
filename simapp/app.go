@@ -1,6 +1,7 @@
 package simapp
 
 import (
+	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	"io"
 	"os"
 
@@ -54,6 +55,7 @@ func init() {
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
 		slashing.AppModuleBasic{},
+		upgrade.AppModuleBasic{},
 	)
 }
 
@@ -86,6 +88,7 @@ type SimApp struct {
 	keyFeeCollection *sdk.KVStoreKey
 	keyParams        *sdk.KVStoreKey
 	tkeyParams       *sdk.TransientStoreKey
+	keyUpgrade       *sdk.KVStoreKey
 
 	// keepers
 	accountKeeper       auth.AccountKeeper
@@ -98,6 +101,7 @@ type SimApp struct {
 	govKeeper           gov.Keeper
 	crisisKeeper        crisis.Keeper
 	paramsKeeper        params.Keeper
+	upgradeKeeper       upgrade.Keeper
 
 	// the module manager
 	mm *sdk.ModuleManager
@@ -129,6 +133,7 @@ func NewSimApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bo
 		keyFeeCollection: sdk.NewKVStoreKey(auth.FeeStoreKey),
 		keyParams:        sdk.NewKVStoreKey(params.StoreKey),
 		tkeyParams:       sdk.NewTransientStoreKey(params.TStoreKey),
+		keyUpgrade:       sdk.NewKVStoreKey(upgrade.StoreKey),
 	}
 
 	// init params keeper and subspaces
@@ -155,12 +160,14 @@ func NewSimApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bo
 		slashingSubspace, slashing.DefaultCodespace)
 	app.crisisKeeper = crisis.NewKeeper(crisisSubspace, invCheckPeriod, app.distrKeeper,
 		app.bankKeeper, app.feeCollectionKeeper)
+	app.upgradeKeeper = upgrade.NewKeeper(app.keyAccount, app.cdc)
 
 	// register the proposal types
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(app.paramsKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.distrKeeper))
+		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.distrKeeper)).
+		AddRoute(upgrade.RouterKey, upgrade.NewSoftwareUpgradeProposalHandler(app.upgradeKeeper))
 	app.govKeeper = gov.NewKeeper(app.cdc, app.keyGov, app.paramsKeeper, govSubspace,
 		app.bankKeeper, &stakingKeeper, gov.DefaultCodespace, govRouter)
 
@@ -180,6 +187,7 @@ func NewSimApp(logger log.Logger, db dbm.DB, traceStore io.Writer, loadLatest bo
 		mint.NewAppModule(app.mintKeeper),
 		slashing.NewAppModule(app.slashingKeeper, app.stakingKeeper),
 		staking.NewAppModule(app.stakingKeeper, app.feeCollectionKeeper, app.distrKeeper, app.accountKeeper),
+		upgrade.NewAppModule(app.upgradeKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that

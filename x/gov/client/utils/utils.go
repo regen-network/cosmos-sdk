@@ -28,9 +28,6 @@ func NormalizeProposalType(proposalType string) string {
 	case "Text", "text":
 		return gov.ProposalTypeText
 
-	case "SoftwareUpgrade", "software_upgrade":
-		return gov.ProposalTypeSoftwareUpgrade
-
 	default:
 		return ""
 	}
