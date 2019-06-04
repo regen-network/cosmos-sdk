@@ -17,6 +17,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
 )
 
+const (
+	TimeFormat = "2006-01-02T15:04:05Z"
+)
+
 // GetCmdSubmitProposal implements a command handler for submitting a software upgrade proposal transaction.
 func GetCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
@@ -82,7 +86,7 @@ func GetCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
 
 			var time time2.Time
 			if len(timeStr) != 0 {
-				time, err = time2.Parse("RFC3339", timeStr)
+				time, err = time2.Parse(TimeFormat, timeStr)
 				if err != nil {
 					return err
 				}
@@ -110,7 +114,7 @@ func GetCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().String(cli.FlagDeposit, "", "deposit of proposal")
 	cmd.Flags().String("upgrade-name", "", "The name of the upgrade (if not specified title will be used)")
 	cmd.Flags().Int64("upgrade-height", 0, "The height at which the upgrade must happen (not to be used together with --upgrade-time)")
-	cmd.Flags().String("upgrade-time", "", "The time at which the upgrade must happen (not to be used together with --upgrade-height)")
+	cmd.Flags().String("upgrade-time", "", fmt.Sprintf("The time at which the upgrade must happen (ex. %s) (not to be used together with --upgrade-height)", TimeFormat))
 	cmd.Flags().String("upgrade-info", "", "Optional info for the planned upgrade such as commit hash, etc.")
 
 	return cmd
