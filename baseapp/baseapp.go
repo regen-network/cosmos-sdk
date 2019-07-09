@@ -288,6 +288,15 @@ func (app *BaseApp) setDeliverState(header abci.Header) {
 	}
 }
 
+// GetDeliverState is needed by calling testcode to create a valid context before begin block
+// TODO: probably remove before merge when someone has a better idea
+func (app *BaseApp) GetDeliverState(header abci.Header) sdk.Context {
+	if app.deliverState == nil {
+		app.setDeliverState(header)
+	}
+	return app.deliverState.ctx
+}
+
 // setConsensusParams memoizes the consensus params.
 func (app *BaseApp) setConsensusParams(consensusParams *abci.ConsensusParams) {
 	app.consensusParams = consensusParams
