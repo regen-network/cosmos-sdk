@@ -123,6 +123,12 @@ func (rs *Store) LoadVersion(ver int64) error {
 		return err
 	}
 
+	// TODO: remove
+	fmt.Printf("cInfo.Version: %d\n", cInfo.Version)
+	for _, si := range cInfo.StoreInfos {
+		fmt.Printf("  %s: (%d) %X\n", si.Name, si.Core.CommitID.Version, si.Core.CommitID.Hash)
+	}
+
 	// convert StoreInfos slice to map
 	infos := make(map[types.StoreKey]storeInfo)
 	for _, storeInfo := range cInfo.StoreInfos {
