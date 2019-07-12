@@ -132,7 +132,14 @@ func (rs *Store) LoadVersion(ver int64) error {
 	// convert StoreInfos slice to map
 	infos := make(map[types.StoreKey]storeInfo)
 	for _, storeInfo := range cInfo.StoreInfos {
-		infos[rs.nameToKey(storeInfo.Name)] = storeInfo
+		func () {
+			defer func() {
+				if r := recover(); r != nil {
+					fmt.Printf("Ignoring %s\n", storeInfo.Name)
+				}
+			}()
+			infos[rs.nameToKey(storeInfo.Name)] = storeInfo
+		}()
 	}
 
 	// load each Store
