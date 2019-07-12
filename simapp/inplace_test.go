@@ -15,6 +15,7 @@ import (
 
 func TestInplaceMigrationFrom034(t *testing.T) {
 	dbName := "application_034"
+	var blockHeight int64 = 525653
 	tmpDir, cleanup := CopyTestdata(t, dbName+".db")
 	defer cleanup()
 
@@ -24,7 +25,7 @@ func TestInplaceMigrationFrom034(t *testing.T) {
 	app := NewSimApp(logger, ldb, nil, true, 0)
 
 	info := app.Info(abci.RequestInfo{})
-	require.Equal(t, 1000, info.GetLastBlockHeight())
+	require.Equal(t, blockHeight, info.GetLastBlockHeight())
 	require.NotNil(t, info.GetLastBlockAppHash())
 
 	err = app.inplaceMigration("foobar")
