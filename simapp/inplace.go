@@ -12,8 +12,9 @@ import (
 func (app *SimApp) inplaceMigration(chainID string) error {
 	now := time.Now().UTC()
 	header := abci.Header{ChainID: chainID, Time: now}
+	ctx := app.GetDeliverState(header)
 
-	return InplaceMigration034to036(app.GetDeliverState(header), app.keyGov, app.keyDistr)
+	return InplaceMigration034to036(ctx, app.keyGov, app.keyDistr)
 }
 
 // InplaceMigration034to036 migrates a 0.34 datastore to 0.36 format
