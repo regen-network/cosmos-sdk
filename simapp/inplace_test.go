@@ -39,11 +39,12 @@ func TestInplaceMigrationFrom034(t *testing.T) {
 	require.NotEmpty(t, res.Data)
 	require.NotEqual(t, info.GetLastBlockAppHash(), res.Data)
 
-	loadGovStore(t, app, chainID)
+	checkGovStore(t, app, chainID)
+	checkDistrStore(t, app, chainID)
 }
 
-// loadGovStore will try to load objects that have changed, should fail on unmigrated data
-func loadGovStore(t *testing.T, app *SimApp, chainID string) {
+// checkGovStore will try to load objects that have changed, should fail on unmigrated data
+func checkGovStore(t *testing.T, app *SimApp, chainID string) {
 	now := time.Now().UTC()
 	header := abci.Header{ChainID: chainID, Time: now}
 	ctx := app.GetDeliverState(header)
@@ -54,6 +55,17 @@ func loadGovStore(t *testing.T, app *SimApp, chainID string) {
 	})
 	t.Logf("Read all proposals")
 }
+
+// checkDistrStore will try to load objects that have changed, should fail on unmigrated data
+func checkDistrStore(t *testing.T, app *SimApp, chainID string) {
+	now := time.Now().UTC()
+	header := abci.Header{ChainID: chainID, Time: now}
+	ctx := app.GetDeliverState(header)
+
+	rewards := app.distrKeeper.GetTotalRewards(ctx)
+	t.Logf("Rewards: %#v", rewards)
+}
+
 
 func CopyTestdata(t *testing.T, subDir string) (string, func()) {
 	sourceDir := "testdata"
