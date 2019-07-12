@@ -6,8 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
@@ -16,6 +20,7 @@ import (
 func TestInplaceMigrationFrom034(t *testing.T) {
 	dbName := "application_034"
 	var blockHeight int64 = 525653
+	chainID := "regen-test-1001"
 	tmpDir, cleanup := CopyTestdata(t, dbName+".db")
 	defer cleanup()
 
@@ -28,11 +33,26 @@ func TestInplaceMigrationFrom034(t *testing.T) {
 	require.Equal(t, blockHeight, info.GetLastBlockHeight())
 	require.NotNil(t, info.GetLastBlockAppHash())
 
-	err = app.inplaceMigration("foobar")
+	err = app.inplaceMigration(chainID)
 	require.NoError(t, err)
 	res := app.Commit()
 	require.NotEmpty(t, res.Data)
 	require.NotEqual(t, info.GetLastBlockAppHash(), res.Data)
+
+	loadGovStore(t, app, chainID)
+}
+
+// loadGovStore will try to load objects that have changed, should fail on unmigrated data
+func loadGovStore(t *testing.T, app *SimApp, chainID string) {
+	now := time.Now().UTC()
+	header := abci.Header{ChainID: chainID, Time: now}
+	ctx := app.GetDeliverState(header)
+
+	app.govKeeper.IterateProposals(ctx, func(proposal govtypes.Proposal) (stop bool) {
+		t.Logf("-> P: %s", proposal)
+		return false
+	})
+	t.Logf("Read all proposals")
 }
 
 func CopyTestdata(t *testing.T, subDir string) (string, func()) {
