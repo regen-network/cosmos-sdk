@@ -10,12 +10,20 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	bam "github.com/cosmos/cosmos-sdk/baseapp"
+	storeTypes "github.com/cosmos/cosmos-sdk/store/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
 )
+
+func useUpgrade(upgrades *storeTypes.StoreUpgrades) func(*bam.BaseApp) {
+	return func(app *bam.BaseApp) {
+		app.SetStoreLoader(bam.StoreLoaderWithUpgrade(upgrades))
+	}
+}
 
 func TestInplaceMigrationFrom034(t *testing.T) {
 	dbName := "application_034"
@@ -24,10 +32,17 @@ func TestInplaceMigrationFrom034(t *testing.T) {
 	tmpDir, cleanup := CopyTestdata(t, dbName+".db")
 	defer cleanup()
 
+	upgrades := &storeTypes.StoreUpgrades{
+		Renamed: []storeTypes.StoreRename{{
+			OldKey: "distr",
+			NewKey: "distribution",
+		}},
+	}
+
 	ldb, err := db.NewGoLevelDB(dbName, tmpDir)
 	require.Nil(t, err)
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-	app := NewSimApp(logger, ldb, nil, true, 0)
+	app := NewSimApp(logger, ldb, nil, true, 0, useUpgrade(upgrades))
 
 	info := app.Info(abci.RequestInfo{})
 	require.Equal(t, blockHeight, info.GetLastBlockHeight())
@@ -65,7 +80,6 @@ func checkDistrStore(t *testing.T, app *SimApp, chainID string) {
 	rewards := app.distrKeeper.GetTotalRewards(ctx)
 	t.Logf("Rewards: %#v", rewards)
 }
-
 
 func CopyTestdata(t *testing.T, subDir string) (string, func()) {
 	sourceDir := "testdata"
