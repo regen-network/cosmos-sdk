@@ -1,8 +1,10 @@
 package baseapp
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"runtime/debug"
@@ -20,6 +22,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
+	storeTypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -41,6 +44,10 @@ const (
 	MainStoreKey = "main"
 )
 
+// StoreLoader defines a customizable function to control how we load the CommitMultiStore
+// from disk
+type StoreLoader func(ms sdk.CommitMultiStore) error
+
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct {
 	// initialized on creation
@@ -48,6 +55,7 @@ type BaseApp struct {
 	name        string               // application name from abci.Info
 	db          dbm.DB               // common DB backend
 	cms         sdk.CommitMultiStore // Main (uncached) state
+	storeLoader StoreLoader          // function to handle store loading, may be overridden with SetStoreLoader()
 	router      sdk.Router           // handle any kind of message
 	queryRouter sdk.QueryRouter      // router for redirecting query calls
 	txDecoder   sdk.TxDecoder        // unmarshal []byte into sdk.Tx
@@ -106,6 +114,7 @@ func NewBaseApp(
 		name:           name,
 		db:             db,
 		cms:            store.NewCommitMultiStore(db),
+		storeLoader:    DefaultStoreLoader,
 		router:         NewRouter(),
 		queryRouter:    NewQueryRouter(),
 		txDecoder:      txDecoder,
@@ -137,6 +146,11 @@ func (app *BaseApp) Logger() log.Logger {
 // CommitMultiStore.
 func (app *BaseApp) SetCommitMultiStoreTracer(w io.Writer) {
 	app.cms.SetTracer(w)
+}
+
+// SetStoreLoader allows us to customize the rootMultiStore initialization.
+func (app *BaseApp) SetStoreLoader(loader StoreLoader) {
+	app.storeLoader = loader
 }
 
 // MountStores mounts all IAVL or DB stores to the provided keys in the BaseApp
@@ -175,11 +189,63 @@ func (app *BaseApp) MountStore(key sdk.StoreKey, typ sdk.StoreType) {
 // LoadLatestVersion loads the latest application version. It will panic if
 // called more than once on a running BaseApp.
 func (app *BaseApp) LoadLatestVersion(baseKey *sdk.KVStoreKey) error {
-	err := app.cms.LoadLatestVersion()
+	err := app.storeLoader(app.cms)
 	if err != nil {
 		return err
 	}
 	return app.initFromMainStore(baseKey)
+}
+
+// DefaultStoreLoader will be used by default and loads the latest version
+func DefaultStoreLoader(ms sdk.CommitMultiStore) error {
+	return ms.LoadLatestVersion()
+}
+
+// StoreLoaderWithUpgrade is used to prepare baseapp with a fixed StoreLoader
+// pattern. This is useful in test cases, or with custom upgrade loading logic.
+func StoreLoaderWithUpgrade(upgrades *storeTypes.StoreUpgrades) StoreLoader {
+	return func(ms sdk.CommitMultiStore) error {
+		return ms.LoadLatestVersionAndUpgrade(upgrades)
+	}
+}
+
+// UpgradeableStoreLoader can be configured by SetStoreLoader() to check for the
+// existence of a given upgrade file - json encoded StoreUpgrades data.
+// If the file if present, parse it and execute those upgrades
+// (rename or delete stores), while loading the data.
+//
+// This is useful for in place migrations when a store key is renamed between
+// two versions of the software.
+func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
+	return func(ms sdk.CommitMultiStore) error {
+		_, err := os.Stat(upgradeInfoPath)
+		if os.IsNotExist(err) {
+			return DefaultStoreLoader(ms)
+		} else if err != nil {
+			return err
+		}
+
+		// there is a migration file, let's execute
+		data, err := ioutil.ReadFile(upgradeInfoPath)
+		if err != nil {
+			return fmt.Errorf("Cannot read upgrade file %s: %v", upgradeInfoPath, err)
+		}
+		var upgrades storeTypes.StoreUpgrades
+		err = json.Unmarshal(data, &upgrades)
+		if err != nil {
+			return fmt.Errorf("Cannot parse upgrade file: %v", err)
+		}
+		err = ms.LoadLatestVersionAndUpgrade(&upgrades)
+		if err != nil {
+			return fmt.Errorf("Load and upgrade database: %v", err)
+		}
+		// if we have a successful load, we delete the file
+		err = os.Remove(upgradeInfoPath)
+		if err != nil {
+			return fmt.Errorf("Deleting upgrade file %s: %v", upgradeInfoPath, err)
+		}
+		return nil
+	}
 }
 
 // LoadVersion loads the BaseApp application version. It will panic if called
@@ -286,6 +352,15 @@ func (app *BaseApp) setDeliverState(header abci.Header) {
 		ms:  ms,
 		ctx: sdk.NewContext(ms, header, false, app.logger),
 	}
+}
+
+// GetDeliverState is needed by calling testcode to create a valid context before begin block
+// TODO: probably remove before merge when someone has a better idea
+func (app *BaseApp) GetDeliverState(header abci.Header) sdk.Context {
+	if app.deliverState == nil {
+		app.setDeliverState(header)
+	}
+	return app.deliverState.ctx
 }
 
 // setConsensusParams memoizes the consensus params.
