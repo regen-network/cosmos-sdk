@@ -2,10 +2,11 @@
 
 ## Supply
 
-The `supply` module: 
- - passively tracks the total supply of coins within a chain, 
- - provides a pattern for modules to hold/interact with `Coins`, and 
- - introduces the invariant check to verify a chain's total supply.
+The `supply` module:
+
+- passively tracks the total supply of coins within a chain,
+- provides a pattern for modules to hold/interact with `Coins`, and
+- introduces the invariant check to verify a chain's total supply.
 
 ### Total Supply
 
@@ -32,10 +33,13 @@ The `ModuleAccount` interface is defined as follows:
 type ModuleAccount interface {
   auth.Account               // same methods as the Account interface
   GetName() string           // name of the module; used to obtain the address
-  GetPermissions() []string  // permissions of module account 
-  HasPermission(string) bool 
+  GetPermissions() []string  // permissions of module account
+  HasPermission(string) bool
 }
 ```
+
+> **WARNING!**
+Any module or message handler that allows either direct or indirect sending of funds must explicitly guarantee those funds cannot be sent to module accounts (unless allowed).
 
 The supply `Keeper` also introduces new wrapper functions for the auth `Keeper`
 and the bank `Keeper` that are related to `ModuleAccount`s in order to be able
@@ -56,7 +60,6 @@ permissions to that specific account and perform or not the action.
 
 The available permissions are:
 
-- `Basic`: is allowed to only transfer its coins to other accounts.
-- `Minter`: allows for a module to mint a specific amount of coins as well as perform the `Basic` permissioned actions.
-- `Burner`: allows for a module to burn a specific amount of coins as well as perform the `Basic` permissioned actions.
+- `Minter`: allows for a module to mint a specific amount of coins.
+- `Burner`: allows for a module to burn a specific amount of coins.
 - `Staking`: allows for a module to delegate and undelegate a specific amount of coins.
