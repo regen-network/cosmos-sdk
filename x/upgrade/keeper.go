@@ -120,39 +120,38 @@ func (keeper *keeper) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) 
 
 	plan, found := keeper.GetUpgradePlan(ctx)
 
-	if !found {
-		return
-	}
-
-	upgradeTime := plan.Time
-	upgradeHeight := plan.Height
-	if (!upgradeTime.IsZero() && !blockTime.Before(upgradeTime)) || (upgradeHeight > 0 && upgradeHeight <= blockHeight) {
-		handler, ok := keeper.upgradeHandlers[plan.Name]
-		if ok {
-			// We have an upgrade handler for this upgrade name, so apply the upgrade
-			ctx.Logger().Info(fmt.Sprintf("Applying upgrade \"%s\" at height %d", plan.Name, blockHeight))
-			handler(ctx, plan)
-			keeper.ClearUpgradePlan(ctx)
-			// Mark this upgrade name as being done so the name can't be reused accidentally
-			store := ctx.KVStore(keeper.storeKey)
-			bz := keeper.cdc.MustMarshalBinaryBare(blockHeight)
-			store.Set(DoneHeightKey(plan.Name), bz)
-		} else {
-			// We don't have an upgrade handler for this upgrade name, meaning this software is out of date so shutdown
-			ctx.Logger().Error(fmt.Sprintf("UPGRADE \"%s\" NEEDED at height %d: %s", plan.Name, blockHeight, plan.Info))
-			panic("UPGRADE REQUIRED!")
-		}
-	} else {
-		// enforce that we are not ahead of the game... if we didn't just upgrade, all registered handlers should be in done
-		store := ctx.KVStore(keeper.storeKey)
-		for name := range keeper.upgradeHandlers {
-			if !store.Has(DoneHeightKey(name)) {
-				ctx.Logger().Error(fmt.Sprintf("UNKOWN UPGRADE \"%s\" - in binary but not executed on chain", name))
-				panic("BINARY NEWER THAN CHAIN!")
+	// give a chance to upgrade if it is time
+	if found {
+		upgradeTime := plan.Time
+		upgradeHeight := plan.Height
+		if (!upgradeTime.IsZero() && !blockTime.Before(upgradeTime)) || (upgradeHeight > 0 && upgradeHeight <= blockHeight) {
+			handler, ok := keeper.upgradeHandlers[plan.Name]
+			if ok {
+				// We have an upgrade handler for this upgrade name, so apply the upgrade
+				ctx.Logger().Info(fmt.Sprintf("Applying upgrade \"%s\" at height %d", plan.Name, blockHeight))
+				handler(ctx, plan)
+				keeper.ClearUpgradePlan(ctx)
+				// Mark this upgrade name as being done so the name can't be reused accidentally
+				store := ctx.KVStore(keeper.storeKey)
+				bz := keeper.cdc.MustMarshalBinaryBare(blockHeight)
+				store.Set(DoneHeightKey(plan.Name), bz)
+			} else {
+				// We don't have an upgrade handler for this upgrade name, meaning this software is out of date so shutdown
+				ctx.Logger().Error(fmt.Sprintf("UPGRADE \"%s\" NEEDED at height %d: %s", plan.Name, blockHeight, plan.Info))
+				panic("UPGRADE REQUIRED!")
 			}
 		}
 	}
 
+	// in every case (after upgrade, or no upgrade), ensure we are not too recent version
+	//all registered handlers should be in done
+	store := ctx.KVStore(keeper.storeKey)
+	for name := range keeper.upgradeHandlers {
+		if !store.Has(DoneHeightKey(name)) {
+			ctx.Logger().Error(fmt.Sprintf("UNKOWN UPGRADE \"%s\" - in binary but not executed on chain", name))
+			panic("BINARY NEWER THAN CHAIN!")
+		}
+	}
 }
 
 type logWriter struct {
