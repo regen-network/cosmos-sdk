@@ -90,13 +90,13 @@ func (s *TestSuite) VerifyDoUpgrade() {
 }
 
 func (s *TestSuite) TestHaltIfTooNew() {
-	s.T().Log("Verify that a panic happens with registered plan not in database")
+	s.T().Log("Verify that we don't panic with registered plan not in database at all")
 	var called int
 	s.keeper.SetUpgradeHandler("future", func(ctx sdk.Context, plan Plan) { called++ })
 
 	newCtx := sdk.NewContext(s.cms, abci.Header{Height: s.ctx.BlockHeight() + 1, Time: time.Now()}, false, log.NewNopLogger())
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
-	s.Require().Panics(func() {
+	s.Require().NotPanics(func() {
 		s.keeper.BeginBlocker(newCtx, req)
 	})
 	s.Require().Equal(0, called)
