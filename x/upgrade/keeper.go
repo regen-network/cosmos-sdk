@@ -119,7 +119,6 @@ func (keeper *keeper) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) 
 	blockHeight := ctx.BlockHeight()
 
 	plan, found := keeper.GetUpgradePlan(ctx)
-
 	if !found {
 		return
 	}
@@ -141,6 +140,14 @@ func (keeper *keeper) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) 
 			// We don't have an upgrade handler for this upgrade name, meaning this software is out of date so shutdown
 			ctx.Logger().Error(fmt.Sprintf("UPGRADE \"%s\" NEEDED at height %d: %s", plan.Name, blockHeight, plan.Info))
 			panic("UPGRADE REQUIRED!")
+		}
+	} else {
+		// if we have a pending upgrade, but it is not yet time, make sure we did not
+		// set the handler already
+		_, ok := keeper.upgradeHandlers[plan.Name]
+		if ok {
+			ctx.Logger().Error(fmt.Sprintf("UNKOWN UPGRADE \"%s\" - in binary but not executed on chain", plan.Name))
+			panic("BINARY UPDATED BEFORE TRIGGER!")
 		}
 	}
 }
