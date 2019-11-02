@@ -10,20 +10,25 @@ import (
 )
 
 // BeginBlock will check if there is a scheduled plan and if it is ready to be executed.
+// If skip upgrade flag is set, it will skip and clear the upgrade plan
 // If it is ready, it will execute it if the handler is installed, and panic/abort otherwise.
 // If the plan is not ready, it will ensure the handler is not registered too early (and abort otherwise).
 //
-// The prupose is to ensure the binary is switch EXACTLY at the desired block, and to allow
+// The purpose is to ensure the binary is switched EXACTLY at the desired block, and to allow
 // a migration to be executed if needed upon this switch (migration defined in the new binary)
 func BeginBlocker(k Keeper, ctx sdk.Context, _ abci.RequestBeginBlock) {
-	skipUpgrade := viper.Get(FlagUnsafeSkipUpgrade).(bool)
-	fmt.Printf("this is skip upgrade value %v", skipUpgrade)
-	if skipUpgrade {
-		return
-	}
+
 	plan, found := k.GetUpgradePlan(ctx)
 	if !found {
 		return
+	}
+
+	skipUpgrade := viper.Get(FlagUnsafeSkipUpgrade).(bool)
+	if skipUpgrade {
+		// If skip upgrade has been set, we clear the upgrade plan
+		skipUpgradeMsg := fmt.Sprintf("UPGRADE \"%s\" SKIPPED at %s: %s", plan.Name, plan.DueAt(), plan.Info)
+		ctx.Logger().Info(skipUpgradeMsg)
+		k.ClearUpgradePlan(ctx)
 	}
 
 	if plan.ShouldExecute(ctx) {
