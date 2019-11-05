@@ -4,15 +4,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/suite"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/libs/log"
+	dbm "github.com/tendermint/tm-db"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/gov"
-	"github.com/stretchr/testify/suite"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
-	dbm "github.com/tendermint/tm-db"
 )
 
 type TestSuite struct {
@@ -23,6 +25,7 @@ type TestSuite struct {
 	module  module.AppModule
 	ctx     sdk.Context
 	cms     store.CommitMultiStore
+	FlagUnsafeSkipUpgrade string
 }
 
 func (s *TestSuite) SetupTest() {
@@ -38,6 +41,7 @@ func (s *TestSuite) SetupTest() {
 	s.cms.MountStoreWithDB(key, sdk.StoreTypeIAVL, db)
 	_ = s.cms.LoadLatestVersion()
 	s.ctx = sdk.NewContext(s.cms, abci.Header{Height: 10, Time: time.Now()}, false, log.NewNopLogger())
+	s.FlagUnsafeSkipUpgrade = FlagUnsafeSkipUpgrade
 }
 
 func (s *TestSuite) TestRequireName() {
@@ -94,12 +98,14 @@ func (s *TestSuite) VerifyDoUpgrade() {
 	s.T().Log("Verify that a panic happens at the upgrade time/height")
 	newCtx := sdk.NewContext(s.cms, abci.Header{Height: s.ctx.BlockHeight() + 1, Time: time.Now()}, false, log.NewNopLogger())
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
+	viper.Set(s.FlagUnsafeSkipUpgrade, false )
 	s.Require().Panics(func() {
 		s.module.BeginBlock(newCtx, req)
 	})
 
 	s.T().Log("Verify that the upgrade can be successfully applied with a handler")
 	s.keeper.SetUpgradeHandler("test", func(ctx sdk.Context, plan Plan) {})
+	viper.Set(s.FlagUnsafeSkipUpgrade, false )
 	s.Require().NotPanics(func() {
 		s.module.BeginBlock(newCtx, req)
 	})
@@ -183,6 +189,35 @@ func (s *TestSuite) TestPlanStringer() {
   Name: test
   Height: 100
   Info: `, Plan{Name: "test", Height: 100}.String())
+}
+
+func (s *TestSuite) TestSkipUpgrade()  {
+	newCtx := sdk.NewContext(s.cms, abci.Header{Height: s.ctx.BlockHeight() + 1, Time: time.Now()}, false, log.NewNopLogger())
+	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
+	err := s.handler(s.ctx, SoftwareUpgradeProposal{Title: "prop", Plan: Plan{Name: "test", Height: s.ctx.BlockHeight() + 1}})
+	s.Require().Nil(err)
+
+	s.T().Log("Verify if skip upgrade flag clears upgrade plan")
+	viper.Set(s.FlagUnsafeSkipUpgrade, true )
+	s.Require().NotPanics(func() {
+		s.module.BeginBlock(newCtx, req)
+	})
+	s.VerifyCleared(s.ctx)
+
+}
+
+func (s *TestSuite) TestUpgradeWithoutSkip() {
+	newCtx := sdk.NewContext(s.cms, abci.Header{Height: s.ctx.BlockHeight() + 1, Time: time.Now()}, false, log.NewNopLogger())
+	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
+	err := s.handler(s.ctx, SoftwareUpgradeProposal{Title: "prop1", Plan: Plan{Name: "test", Height: s.ctx.BlockHeight() + 1}})
+	s.Require().Nil(err)
+	s.T().Log("Verify if upgrade happens without skip upgrade")
+	viper.Set(s.FlagUnsafeSkipUpgrade, false )
+	s.Require().Panics(func() {
+		s.module.BeginBlock(newCtx, req)
+	})
+
+	s.VerifyDoUpgrade()
 }
 
 func TestTestSuite(t *testing.T) {
