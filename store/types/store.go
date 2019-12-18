@@ -44,6 +44,11 @@ type StoreUpgrades struct {
 	Deleted []string      `json:"deleted"`
 }
 
+type UpgradeFile struct {
+	Height        int64         `json:"height"`
+	StoreUpgrades StoreUpgrades `json:"store_upgrades"`
+}
+
 // StoreRename defines a name change of a sub-store.
 // All data previously under a PrefixStore with OldKey will be copied
 // to a PrefixStore with NewKey, then deleted from OldKey store.

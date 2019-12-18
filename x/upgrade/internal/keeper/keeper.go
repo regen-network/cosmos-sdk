@@ -2,12 +2,18 @@ package keeper
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
+	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/upgrade/internal/types"
+	"github.com/spf13/viper"
+	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -57,6 +63,29 @@ func (k Keeper) ScheduleUpgrade(ctx sdk.Context, plan types.Plan) sdk.Error {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.PlanKey(), bz)
 	return nil
+}
+
+func (k Keeper) WriteToFile(ctx sdk.Context, height int64) {
+	home := viper.GetString(cli.HomeFlag)
+	upgradeFilePath := home + "upgrade-info.json"
+	info, err := ioutil.ReadFile(upgradeFilePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s does not exist\n", upgradeFilePath)
+	}
+	var upgradeFile store.UpgradeFile
+	err = json.Unmarshal(info, upgradeFile)
+	if err != nil {
+		return
+	}
+
+	upgradeFile.Height = height
+
+	info, err = json.Marshal(upgradeFile)
+	if err != nil {
+		_ = fmt.Errorf("Unable to marshal ")
+	}
+	err = ioutil.WriteFile(upgradeFilePath, info, 0644)
+
 }
 
 func (k Keeper) GetDoneHeight(ctx sdk.Context, name string) int64 {
