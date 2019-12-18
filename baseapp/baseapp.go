@@ -261,13 +261,13 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 			return fmt.Errorf("cannot read upgrade file %s: %v", upgradeInfoPath, err)
 		}
 
-		var upgrades storetypes.StoreUpgrades
+		var upgrades storetypes.UpgradeFile
 		err = json.Unmarshal(data, &upgrades)
 		if err != nil {
 			return fmt.Errorf("cannot parse upgrade file: %v", err)
 		}
 
-		err = ms.LoadLatestVersionAndUpgrade(&upgrades)
+		err = ms.LoadLatestVersionAndUpgrade(&upgrades.StoreUpgrades)
 		if err != nil {
 			return fmt.Errorf("load and upgrade database: %v", err)
 		}

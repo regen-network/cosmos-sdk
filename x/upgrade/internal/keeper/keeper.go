@@ -65,7 +65,8 @@ func (k Keeper) ScheduleUpgrade(ctx sdk.Context, plan types.Plan) sdk.Error {
 	return nil
 }
 
-func (k Keeper) WriteToFile(ctx sdk.Context, height int64) {
+// WriteToFile adds plan height to upgrade-info.json
+func (k Keeper) WriteToFile(height int64) {
 	home := viper.GetString(cli.HomeFlag)
 	upgradeFilePath := home + "upgrade-info.json"
 	info, err := ioutil.ReadFile(upgradeFilePath)
