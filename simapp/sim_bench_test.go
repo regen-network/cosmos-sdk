@@ -30,7 +30,7 @@ func BenchmarkFullAppSimulation(b *testing.B) {
 		os.RemoveAll(dir)
 	}()
 
-	app := NewSimApp(logger, db, nil, true, FlagPeriodValue, interBlockCacheOpt())
+	app := NewSimApp(logger, db, nil, true, []int64{}, FlagPeriodValue, interBlockCacheOpt())
 
 	// Run randomized simulation
 	// TODO: parameterize numbers, save for a later PR
@@ -82,7 +82,7 @@ func BenchmarkInvariants(b *testing.B) {
 		os.RemoveAll(dir)
 	}()
 
-	app := NewSimApp(logger, db, nil, true, FlagPeriodValue, interBlockCacheOpt())
+	app := NewSimApp(logger, db, nil, true, []int64{}, FlagPeriodValue, interBlockCacheOpt())
 
 	// 2. Run parameterized simulation (w/o invariants)
 	_, simParams, simErr := simulation.SimulateFromSeed(

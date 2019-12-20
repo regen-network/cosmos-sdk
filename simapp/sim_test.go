@@ -69,7 +69,7 @@ func TestFullAppSimulation(t *testing.T) {
 		os.RemoveAll(dir)
 	}()
 
-	app := NewSimApp(logger, db, nil, true, FlagPeriodValue, fauxMerkleModeOpt)
+	app := NewSimApp(logger, db, nil, true, []int64{}, FlagPeriodValue, fauxMerkleModeOpt)
 	require.Equal(t, "SimApp", app.Name())
 
 	// Run randomized simulation
@@ -125,7 +125,7 @@ func TestAppImportExport(t *testing.T) {
 		os.RemoveAll(dir)
 	}()
 
-	app := NewSimApp(logger, db, nil, true, FlagPeriodValue, fauxMerkleModeOpt)
+	app := NewSimApp(logger, db, nil, true, []int64{}, FlagPeriodValue, fauxMerkleModeOpt)
 	require.Equal(t, "SimApp", app.Name())
 
 	// Run randomized simulation
@@ -170,7 +170,7 @@ func TestAppImportExport(t *testing.T) {
 		_ = os.RemoveAll(newDir)
 	}()
 
-	newApp := NewSimApp(log.NewNopLogger(), newDB, nil, true, FlagPeriodValue, fauxMerkleModeOpt)
+	newApp := NewSimApp(log.NewNopLogger(), newDB, nil, true, []int64{}, FlagPeriodValue, fauxMerkleModeOpt)
 	require.Equal(t, "SimApp", newApp.Name())
 
 	var genesisState GenesisState
@@ -243,7 +243,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 		os.RemoveAll(dir)
 	}()
 
-	app := NewSimApp(logger, db, nil, true, FlagPeriodValue, fauxMerkleModeOpt)
+	app := NewSimApp(logger, db, nil, true, []int64{}, FlagPeriodValue, fauxMerkleModeOpt)
 	require.Equal(t, "SimApp", app.Name())
 
 	// Run randomized simulation
@@ -343,7 +343,7 @@ func TestAppStateDeterminism(t *testing.T) {
 
 			db := dbm.NewMemDB()
 
-			app := NewSimApp(logger, db, nil, true, FlagPeriodValue, interBlockCacheOpt())
+			app := NewSimApp(logger, db, nil, true, []int64{}, FlagPeriodValue, interBlockCacheOpt())
 
 			fmt.Printf(
 				"running non-determinism simulation; seed %d: %d/%d, attempt: %d/%d\n",
