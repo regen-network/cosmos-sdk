@@ -3,22 +3,14 @@ package upgrade
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"io/ioutil"
 )
 
 func UpgradeableStoreLoader(upgradeInfoPath string) baseapp.StoreLoader {
 	return func(ms sdk.CommitMultiStore) error {
-		_, err := os.Stat(upgradeInfoPath)
-		if os.IsNotExist(err) {
-			return baseapp.DefaultStoreLoader(ms)
-		} else if err != nil {
-			return err
-		}
 
 		data, err := ioutil.ReadFile(upgradeInfoPath)
 		if err != nil {
@@ -36,10 +28,14 @@ func UpgradeableStoreLoader(upgradeInfoPath string) baseapp.StoreLoader {
 			return fmt.Errorf("load and upgrade database: %v", err)
 		}
 
-		// if we have a successful load, we delete the file
-		err = os.Remove(upgradeInfoPath)
-		if err != nil {
-			return fmt.Errorf("deleting upgrade file %s: %v", upgradeInfoPath, err)
+		// if we have a successful load, we set the values to default
+		upgrades.Height = 0
+		upgrades.StoreUpgrades = storetypes.StoreUpgrades{
+			Renamed: []storetypes.StoreRename{{
+				OldKey: "",
+				NewKey: "",
+			}},
+			Deleted: []string{""},
 		}
 		return nil
 	}
