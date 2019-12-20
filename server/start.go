@@ -5,6 +5,7 @@ package server
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime/pprof"
 
 	"github.com/spf13/cobra"
@@ -147,8 +148,10 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	}
 
 	app := appCreator(ctx.Logger, db, traceWriter)
+	defaultUpgradeFileName := "upgrade-file.json"
+	defaultUpgradeFilePath := filepath.Join(cfg.RootDir, defaultUpgradeFileName)
 
-	err = config.GenerateOrLoadUpgradeInfoFile()
+	err = config.GenerateOrLoadUpgradeInfoFile(defaultUpgradeFilePath)
 	if err != nil {
 		return nil, err
 	}

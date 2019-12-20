@@ -2,20 +2,15 @@ package config
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
+	"io/ioutil"
+	"os"
 )
 
-func GenerateOrLoadUpgradeInfoFile() error {
-	home := viper.GetString(cli.HomeFlag)
-	upgradeFilePath := filepath.Join(home, "upgrade-info.json")
-	if _, err := os.Stat(upgradeFilePath); err == nil {
+func GenerateOrLoadUpgradeInfoFile(defaultUpgradeFilePath string) error {
+
+	if _, err := os.Stat(defaultUpgradeFilePath); err == nil {
 		return nil
 	} else if os.IsNotExist(err) {
 		var upgradeFile store.UpgradeFile
@@ -31,7 +26,7 @@ func GenerateOrLoadUpgradeInfoFile() error {
 		if err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(upgradeFilePath, info, 0644)
+		err = ioutil.WriteFile(defaultUpgradeFilePath, info, 0644)
 	}
 
 	return nil
