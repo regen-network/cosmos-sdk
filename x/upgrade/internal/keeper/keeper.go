@@ -65,6 +65,7 @@ func (k Keeper) ScheduleUpgrade(ctx sdk.Context, plan types.Plan) sdk.Error {
 
 // WriteToFile adds plan height to upgrade-info.json
 func (k Keeper) DumpUpgradeInfoToFile(height int64) {
+	// TODO get RootDir
 	upgradeInfoFilePath := "./upgrade-info.json"
 	_, err := os.Stat(upgradeInfoFilePath)
 

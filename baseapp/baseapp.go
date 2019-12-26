@@ -225,6 +225,7 @@ func DefaultStoreLoader(ms sdk.CommitMultiStore) error {
 	return ms.LoadLatestVersion()
 }
 
+// TODO move this to upgrade module
 // StoreLoaderWithUpgrade is used to prepare baseapp with a fixed StoreLoader
 // pattern. This is useful in test cases, or with custom upgrade loading logic.
 func StoreLoaderWithUpgrade(upgrades *storetypes.StoreUpgrades) StoreLoader {
@@ -233,6 +234,7 @@ func StoreLoaderWithUpgrade(upgrades *storetypes.StoreUpgrades) StoreLoader {
 	}
 }
 
+// TODO move this to upgrade module
 // UpgradeableStoreLoader can be configured by SetStoreLoader() to check for the
 // existence of a given upgrade file - json encoded StoreUpgrades data.
 //
