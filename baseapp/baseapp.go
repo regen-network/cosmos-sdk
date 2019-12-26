@@ -269,24 +269,24 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 		var x interface{}
 		err = json.Unmarshal(data, &x)
 
+		var currentHeight = ms.LastCommitID().Version
+
 		if err != nil {
 			return fmt.Errorf("cannot parse upgrade file: %v", err)
 		}
 
 		// If the current upgrade has StoreUpgrades planned and the binary is loading for the first time
-		// i.e., upgrades.status is not "done"
+		// i.e., upgrades.Height == currentHeight
 		// then do LoadLatestVersionAndUpgrade
 		// Else, do DefaultStoreLoader
 		if (len(upgrades.StoreUpgrades.Renamed) > 0 ||  len(upgrades.StoreUpgrades.Deleted) > 0 ) &&
-			upgrades.Status != "done" {
+			upgrades.Height == currentHeight {
 			err = ms.LoadLatestVersionAndUpgrade(&upgrades.StoreUpgrades)
 			if err != nil {
 				return fmt.Errorf("load and upgrade database: %v", err)
 			}
 
 			// if we have a successful load, we set the values to default
-			// Set the status to "done"
-			upgrades.Height = 0
 			upgrades.StoreUpgrades = storetypes.StoreUpgrades{
 				Renamed: []storetypes.StoreRename{{
 					OldKey: "",
@@ -294,7 +294,6 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 				}},
 				Deleted: []string{""},
 			}
-			upgrades.Status = "done"
 
 			writeInfo, _ := json.Marshal(upgrades)
 

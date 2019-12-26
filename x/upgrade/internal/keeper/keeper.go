@@ -81,7 +81,6 @@ func (k Keeper) DumpUpgradeInfoToFile(height int64) {
 	var upgradeInfo store.UpgradeInfo
 
 	upgradeInfo.Height = height
-	upgradeInfo.Status = "todo"
 
 	info, err := json.Marshal(upgradeInfo)
 	if err != nil {

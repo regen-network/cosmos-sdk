@@ -46,7 +46,6 @@ type StoreUpgrades struct {
 
 type UpgradeInfo struct {
 	Height        int64         `json:"height"`
-	Status        string        `json: "status"`
 	StoreUpgrades StoreUpgrades `json:"store_upgrades"`
 }
 
