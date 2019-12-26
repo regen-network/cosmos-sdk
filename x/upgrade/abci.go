@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	abci "github.com/tendermint/tendermint/abci/types"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -16,7 +15,6 @@ import (
 // The purpose is to ensure the binary is switched EXACTLY at the desired block, and to allow
 // a migration to be executed if needed upon this switch (migration defined in the new binary)
 func BeginBlocker(k Keeper, ctx sdk.Context, _ abci.RequestBeginBlock, skipUpgradeHeightArray []int64) {
-
 	plan, found := k.GetUpgradePlan(ctx)
 	if !found {
 		return
@@ -37,7 +35,8 @@ func BeginBlocker(k Keeper, ctx sdk.Context, _ abci.RequestBeginBlock, skipUpgra
 			// We don't have an upgrade handler for this upgrade name, meaning this software is out of date so shutdown
 			ctx.Logger().Error(upgradeMsg)
 
-			k.WriteToFile(ctx.BlockHeight())
+			k.DumpUpgradeInfoToFile(ctx.BlockHeight())
+
 			panic(upgradeMsg)
 		}
 		// We have an upgrade handler for this upgrade name, so apply the upgrade

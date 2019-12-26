@@ -5,7 +5,6 @@ package server
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime/pprof"
 
 	"github.com/spf13/cobra"
@@ -17,8 +16,6 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	pvm "github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
-
-	"github.com/cosmos/cosmos-sdk/server/config"
 )
 
 // Tendermint full-node start flags
@@ -148,13 +145,6 @@ func startInProcess(ctx *Context, appCreator AppCreator) (*node.Node, error) {
 	}
 
 	app := appCreator(ctx.Logger, db, traceWriter)
-	defaultUpgradeFileName := "upgrade-file.json"
-	defaultUpgradeFilePath := filepath.Join(cfg.RootDir, defaultUpgradeFileName)
-
-	err = config.GenerateOrLoadUpgradeInfoFile(defaultUpgradeFilePath)
-	if err != nil {
-		return nil, err
-	}
 
 	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
 	if err != nil {
