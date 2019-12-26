@@ -1,8 +1,11 @@
 package baseapp
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"runtime/debug"
 	"strings"
@@ -227,6 +230,67 @@ func DefaultStoreLoader(ms sdk.CommitMultiStore) error {
 func StoreLoaderWithUpgrade(upgrades *storetypes.StoreUpgrades) StoreLoader {
 	return func(ms sdk.CommitMultiStore) error {
 		return ms.LoadLatestVersionAndUpgrade(upgrades)
+	}
+}
+
+func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
+	return func(ms sdk.CommitMultiStore) error {
+		_, err := os.Stat(upgradeInfoPath)
+
+		if os.IsNotExist(err) {
+			return DefaultStoreLoader(ms)
+		} else if err != nil {
+			return err
+		}
+
+		data, err := ioutil.ReadFile(upgradeInfoPath)
+		if err != nil {
+			return fmt.Errorf("cannot read upgrade file %s: %v", upgradeInfoPath, err)
+		}
+
+		var upgrades storetypes.UpgradeFile
+		err = json.Unmarshal(data, &upgrades)
+
+		var x interface{}
+		err = json.Unmarshal(data, &x)
+
+		if err != nil {
+			return fmt.Errorf("cannot parse upgrade file: %v", err)
+		}
+
+		fmt.Println("Data: ", upgrades.StoreUpgrades, upgrades.Height, x)
+
+		currentHeight := ms.LastCommitID().Version
+
+		// If the current height matches with upgrade's height, do LoadLatestVersionAndUpgrade
+		// Else, do DefaultStoreLoader
+		if currentHeight == upgrades.Height {
+			err = ms.LoadLatestVersionAndUpgrade(&upgrades.StoreUpgrades)
+			if err != nil {
+				return fmt.Errorf("load and upgrade database: %v", err)
+			}
+
+			// if we have a successful load, we set the values to default
+			upgrades.Height = 0
+			upgrades.StoreUpgrades = storetypes.StoreUpgrades{
+				Renamed: []storetypes.StoreRename{{
+					OldKey: "",
+					NewKey: "",
+				}},
+				Deleted: []string{""},
+			}
+
+			writeInfo, _ := json.Marshal(upgrades)
+
+			// Write the successful upgrade information to file, so it doesn't check on loading the binary next time
+			// We don't care if there's any error in updating the upgrade-info.json file
+			// as the height changes and it doesn't effect any further after successful upgrade
+			err = ioutil.WriteFile(upgradeInfoPath, writeInfo, 0644)
+		} else {
+			return ms.LoadLatestVersion()
+		}
+
+		return nil
 	}
 }
 

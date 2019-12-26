@@ -27,7 +27,6 @@ func BeginBlocker(k Keeper, ctx sdk.Context, _ abci.RequestBeginBlock, skipUpgra
 		if k.Contains(skipUpgradeHeightArray, ctx.BlockHeight()) {
 			// If skip upgrade has been set, we clear the upgrade plan
 			skipUpgradeMsg := fmt.Sprintf("UPGRADE \"%s\" SKIPPED at %d: %s", plan.Name, plan.Height, plan.Info)
-			k.WriteToFile(ctx.BlockHeight())
 			ctx.Logger().Info(skipUpgradeMsg)
 			k.ClearUpgradePlan(ctx)
 			return
@@ -36,8 +35,9 @@ func BeginBlocker(k Keeper, ctx sdk.Context, _ abci.RequestBeginBlock, skipUpgra
 		if !k.HasHandler(plan.Name) {
 			upgradeMsg := fmt.Sprintf("UPGRADE \"%s\" NEEDED at %s: %s", plan.Name, plan.DueAt(), plan.Info)
 			// We don't have an upgrade handler for this upgrade name, meaning this software is out of date so shutdown
-			k.WriteToFile(ctx.BlockHeight())
 			ctx.Logger().Error(upgradeMsg)
+
+			k.WriteToFile(ctx.BlockHeight())
 			panic(upgradeMsg)
 		}
 		// We have an upgrade handler for this upgrade name, so apply the upgrade
