@@ -133,5 +133,6 @@ func (app *BaseApp) SetStoreLoader(loader StoreLoader) {
 	if app.sealed {
 		panic("SetStoreLoader() on sealed BaseApp")
 	}
+
 	app.storeLoader = loader
 }

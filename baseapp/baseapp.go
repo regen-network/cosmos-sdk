@@ -237,6 +237,7 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 	return func(ms sdk.CommitMultiStore) error {
 		_, err := os.Stat(upgradeInfoPath)
 
+		// If the upgrade-info file is not found, ignore the multistore upgrades and load DefaultStoreLoader
 		if os.IsNotExist(err) {
 			return DefaultStoreLoader(ms)
 		} else if err != nil {
@@ -248,7 +249,7 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 			return fmt.Errorf("cannot read upgrade file %s: %v", upgradeInfoPath, err)
 		}
 
-		var upgrades storetypes.UpgradeFile
+		var upgrades storetypes.UpgradeInfo
 		err = json.Unmarshal(data, &upgrades)
 
 		var x interface{}
@@ -258,19 +259,19 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 			return fmt.Errorf("cannot parse upgrade file: %v", err)
 		}
 
-		fmt.Println("Data: ", upgrades.StoreUpgrades, upgrades.Height, x)
-
-		currentHeight := ms.LastCommitID().Version
-
-		// If the current height matches with upgrade's height, do LoadLatestVersionAndUpgrade
+		// If the current upgrade has StoreUpgrades planned and the binary is loading for the first time
+		// i.e., upgrades.status is not "done"
+		// then do LoadLatestVersionAndUpgrade
 		// Else, do DefaultStoreLoader
-		if currentHeight == upgrades.Height {
+		if (len(upgrades.StoreUpgrades.Renamed) > 0 ||  len(upgrades.StoreUpgrades.Deleted) > 0 ) &&
+			upgrades.Status != "done" {
 			err = ms.LoadLatestVersionAndUpgrade(&upgrades.StoreUpgrades)
 			if err != nil {
 				return fmt.Errorf("load and upgrade database: %v", err)
 			}
 
 			// if we have a successful load, we set the values to default
+			// Set the status to "done"
 			upgrades.Height = 0
 			upgrades.StoreUpgrades = storetypes.StoreUpgrades{
 				Renamed: []storetypes.StoreRename{{
@@ -279,6 +280,7 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 				}},
 				Deleted: []string{""},
 			}
+			upgrades.Status = "done"
 
 			writeInfo, _ := json.Marshal(upgrades)
 
@@ -286,11 +288,18 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 			// We don't care if there's any error in updating the upgrade-info.json file
 			// as the height changes and it doesn't effect any further after successful upgrade
 			err = ioutil.WriteFile(upgradeInfoPath, writeInfo, 0644)
-		} else {
-			return ms.LoadLatestVersion()
-		}
 
-		return nil
+			// There should not be any error in writing the upgrade info to file.
+			// Otherwise it will lead to restart the multistore upgrades every time when the binary restarts.
+			// So panic
+			if err != nil {
+				panic(fmt.Errorf("error in multistore upgrade: %v", err))
+			}
+
+			return nil
+		} else {
+			return DefaultStoreLoader(ms)
+		}
 	}
 }
 
