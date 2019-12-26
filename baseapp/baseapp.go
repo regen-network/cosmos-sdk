@@ -233,6 +233,18 @@ func StoreLoaderWithUpgrade(upgrades *storetypes.StoreUpgrades) StoreLoader {
 	}
 }
 
+// UpgradeableStoreLoader can be configured by SetStoreLoader() to check for the
+// existence of a given upgrade file - json encoded StoreUpgrades data.
+//
+// If not file is present, it will perform the default load (no upgrades to store).
+//
+// If the file is present, it will parse the file and execute those upgrades
+// (rename or delete stores), while loading the data. It will also delete the
+// upgrade file upon successful load, so that the upgrade is only applied once,
+// and not re-applied on next restart
+//
+// This is useful for in place migrations when a store key is renamed between
+// two versions of the software.
 func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 	return func(ms sdk.CommitMultiStore) error {
 		_, err := os.Stat(upgradeInfoPath)
