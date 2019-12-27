@@ -14,10 +14,6 @@ import (
 	"testing"
 )
 
-func useDefaultLoader(app *baseapp.BaseApp) {
-	app.SetStoreLoader(baseapp.DefaultStoreLoader)
-}
-
 func useUpgradeLoader(upgrades *store.StoreUpgrades) func(*baseapp.BaseApp) {
 	return func(app *baseapp.BaseApp) {
 		app.SetStoreLoader(StoreLoaderWithUpgrade(upgrades))
@@ -70,7 +66,7 @@ func checkStore(t *testing.T, db dbm.DB, ver int64, storeKey string, k, v []byte
 // Test that we can make commits and then reload old versions.
 // Test that LoadLatestVersion actually does.
 func TestSetLoader(t *testing.T) {
-	// write a renamer to a file
+	// write a rename to a file
 	f, err := ioutil.TempFile("", "upgrade-*.json")
 	require.NoError(t, err)
 	data := []byte(`{"height": 0, "store_upgrades": {"renamed":[{"old_key": "bnk", "new_key": "banker"}]}}`)
@@ -89,11 +85,6 @@ func TestSetLoader(t *testing.T) {
 		loadStoreKey string
 	}{
 		"don't set loader": {
-			origStoreKey: "foo",
-			loadStoreKey: "foo",
-		},
-		"default loader": {
-			setLoader:    useDefaultLoader,
 			origStoreKey: "foo",
 			loadStoreKey: "foo",
 		},

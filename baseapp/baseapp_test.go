@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/store/rootmulti"
 	"os"
 	"testing"
 
@@ -128,6 +129,96 @@ func TestLoadVersion(t *testing.T) {
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
 	app.Commit()
 	testLoadVersionHelper(t, app, int64(2), commitID2)
+}
+
+func useDefaultLoader(app *BaseApp) {
+	app.SetStoreLoader(DefaultStoreLoader)
+}
+
+func initStore(t *testing.T, db dbm.DB, storeKey string, k, v []byte) {
+	rs := rootmulti.NewStore(db)
+	rs.SetPruning(store.PruneSyncable)
+	key := sdk.NewKVStoreKey(storeKey)
+	rs.MountStoreWithDB(key, store.StoreTypeIAVL, nil)
+	err := rs.LoadLatestVersion()
+	require.Nil(t, err)
+	require.Equal(t, int64(0), rs.LastCommitID().Version)
+
+	// write some data in substore
+	kv, _ := rs.GetStore(key).(store.KVStore)
+	require.NotNil(t, kv)
+	kv.Set(k, v)
+	commitID := rs.Commit()
+	require.Equal(t, int64(1), commitID.Version)
+}
+
+func checkStore(t *testing.T, db dbm.DB, ver int64, storeKey string, k, v []byte) {
+	rs := rootmulti.NewStore(db)
+	rs.SetPruning(store.PruneSyncable)
+	key := sdk.NewKVStoreKey(storeKey)
+	rs.MountStoreWithDB(key, store.StoreTypeIAVL, nil)
+	err := rs.LoadLatestVersion()
+	require.Nil(t, err)
+	require.Equal(t, ver, rs.LastCommitID().Version)
+
+	// query data in substore
+	kv, _ := rs.GetStore(key).(store.KVStore)
+	require.NotNil(t, kv)
+	require.Equal(t, v, kv.Get(k))
+}
+
+// Test that we can make commits and then reload old versions.
+// Test that LoadLatestVersion actually does.
+func TestSetLoader(t *testing.T) {
+	cases := map[string]struct {
+		setLoader    func(*BaseApp)
+		origStoreKey string
+		loadStoreKey string
+	}{
+		"don't set loader": {
+			origStoreKey: "foo",
+			loadStoreKey: "foo",
+		},
+		"default loader": {
+			setLoader:    useDefaultLoader,
+			origStoreKey: "foo",
+			loadStoreKey: "foo",
+		},
+	}
+
+	k := []byte("key")
+	v := []byte("value")
+
+	for name, tc := range cases {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			// prepare a db with some data
+			db := dbm.NewMemDB()
+			initStore(t, db, tc.origStoreKey, k, v)
+
+			// load the app with the existing db
+			opts := []func(*BaseApp){SetPruning(store.PruneSyncable)}
+			if tc.setLoader != nil {
+				opts = append(opts, tc.setLoader)
+			}
+			app := NewBaseApp(t.Name(), defaultLogger(), db, nil, opts...)
+			capKey := sdk.NewKVStoreKey(MainStoreKey)
+			app.MountStores(capKey)
+			app.MountStores(sdk.NewKVStoreKey(tc.loadStoreKey))
+			err := app.LoadLatestVersion(capKey)
+			require.Nil(t, err)
+
+			// "execute" one block
+			app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
+			res := app.Commit()
+			require.NotNil(t, res.Data)
+
+			// check db is properly updated
+			checkStore(t, db, 2, tc.loadStoreKey, k, v)
+			checkStore(t, db, 2, tc.loadStoreKey, []byte("foo"), nil)
+		})
+	}
+
 }
 
 func TestAppVersionSetterGetter(t *testing.T) {
