@@ -269,7 +269,7 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 		var x interface{}
 		err = json.Unmarshal(data, &x)
 
-		var currentHeight = ms.LastCommitID().Version
+		var lastBlockHeight = ms.LastCommitID().Version
 
 		if err != nil {
 			return fmt.Errorf("cannot parse upgrade file: %v", err)
@@ -280,7 +280,7 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 		// then do LoadLatestVersionAndUpgrade
 		// Else, do DefaultStoreLoader
 		if (len(upgrades.StoreUpgrades.Renamed) > 0 ||  len(upgrades.StoreUpgrades.Deleted) > 0 ) &&
-			upgrades.Height == currentHeight {
+			upgrades.Height == lastBlockHeight {
 			err = ms.LoadLatestVersionAndUpgrade(&upgrades.StoreUpgrades)
 			if err != nil {
 				return fmt.Errorf("load and upgrade database: %v", err)
