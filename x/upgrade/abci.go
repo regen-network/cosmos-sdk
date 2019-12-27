@@ -3,8 +3,9 @@ package upgrade
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // BeginBlock will check if there is a scheduled plan and if it is ready to be executed.
@@ -15,6 +16,7 @@ import (
 // The purpose is to ensure the binary is switched EXACTLY at the desired block, and to allow
 // a migration to be executed if needed upon this switch (migration defined in the new binary)
 func BeginBlocker(k Keeper, ctx sdk.Context, _ abci.RequestBeginBlock, skipUpgradeHeightArray []int64) {
+
 	plan, found := k.GetUpgradePlan(ctx)
 	if !found {
 		return
@@ -25,6 +27,7 @@ func BeginBlocker(k Keeper, ctx sdk.Context, _ abci.RequestBeginBlock, skipUpgra
 		if k.Contains(skipUpgradeHeightArray, ctx.BlockHeight()) {
 			// If skip upgrade has been set, we clear the upgrade plan
 			skipUpgradeMsg := fmt.Sprintf("UPGRADE \"%s\" SKIPPED at %d: %s", plan.Name, plan.Height, plan.Info)
+			k.WriteToFile(ctx.BlockHeight())
 			ctx.Logger().Info(skipUpgradeMsg)
 			k.ClearUpgradePlan(ctx)
 			return
@@ -33,13 +36,8 @@ func BeginBlocker(k Keeper, ctx sdk.Context, _ abci.RequestBeginBlock, skipUpgra
 		if !k.HasHandler(plan.Name) {
 			upgradeMsg := fmt.Sprintf("UPGRADE \"%s\" NEEDED at %s: %s", plan.Name, plan.DueAt(), plan.Info)
 			// We don't have an upgrade handler for this upgrade name, meaning this software is out of date so shutdown
+			k.WriteToFile(ctx.BlockHeight())
 			ctx.Logger().Error(upgradeMsg)
-
-			// Write upgrade height info to filesystem
-			// So multistore upgrades can make use of this height to determine
-			// to continue or skip the multistore upgrades on launching new binary
-			k.DumpUpgradeInfoToFile(ctx.BlockHeight())
-
 			panic(upgradeMsg)
 		}
 		// We have an upgrade handler for this upgrade name, so apply the upgrade

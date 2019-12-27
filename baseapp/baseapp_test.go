@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/store/rootmulti"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -16,6 +16,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/store/rootmulti"
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -135,6 +136,18 @@ func useDefaultLoader(app *BaseApp) {
 	app.SetStoreLoader(DefaultStoreLoader)
 }
 
+func useUpgradeLoader(upgrades *store.StoreUpgrades) func(*BaseApp) {
+	return func(app *BaseApp) {
+		app.SetStoreLoader(StoreLoaderWithUpgrade(upgrades))
+	}
+}
+
+func useFileUpgradeLoader(upgradeInfoPath string) func(*BaseApp) {
+	return func(app *BaseApp) {
+		app.SetStoreLoader(UpgradeableStoreLoader(upgradeInfoPath))
+	}
+}
+
 func initStore(t *testing.T, db dbm.DB, storeKey string, k, v []byte) {
 	rs := rootmulti.NewStore(db)
 	rs.SetPruning(store.PruneSyncable)
@@ -170,6 +183,19 @@ func checkStore(t *testing.T, db dbm.DB, ver int64, storeKey string, k, v []byte
 // Test that we can make commits and then reload old versions.
 // Test that LoadLatestVersion actually does.
 func TestSetLoader(t *testing.T) {
+	// write a renamer to a file
+	f, err := ioutil.TempFile("", "upgrade-*.json")
+	require.NoError(t, err)
+	data := []byte(`{"renamed":[{"old_key": "bnk", "new_key": "banker"}]}`)
+	_, err = f.Write(data)
+	require.NoError(t, err)
+	configName := f.Name()
+	require.NoError(t, f.Close())
+
+	// make sure it exists before running everything
+	_, err = os.Stat(configName)
+	require.NoError(t, err)
+
 	cases := map[string]struct {
 		setLoader    func(*BaseApp)
 		origStoreKey string
@@ -183,6 +209,26 @@ func TestSetLoader(t *testing.T) {
 			setLoader:    useDefaultLoader,
 			origStoreKey: "foo",
 			loadStoreKey: "foo",
+		},
+		"rename with inline opts": {
+			setLoader: useUpgradeLoader(&store.StoreUpgrades{
+				Renamed: []store.StoreRename{{
+					OldKey: "foo",
+					NewKey: "bar",
+				}},
+			}),
+			origStoreKey: "foo",
+			loadStoreKey: "bar",
+		},
+		"file loader with missing file": {
+			setLoader:    useFileUpgradeLoader(configName + "randomchars"),
+			origStoreKey: "bnk",
+			loadStoreKey: "bnk",
+		},
+		"file loader with existing file": {
+			setLoader:    useFileUpgradeLoader(configName),
+			origStoreKey: "bnk",
+			loadStoreKey: "banker",
 		},
 	}
 
@@ -219,6 +265,9 @@ func TestSetLoader(t *testing.T) {
 		})
 	}
 
+	// ensure config file was deleted
+	_, err = os.Stat(configName)
+	require.True(t, os.IsNotExist(err))
 }
 
 func TestAppVersionSetterGetter(t *testing.T) {
