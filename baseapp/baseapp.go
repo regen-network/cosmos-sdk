@@ -279,7 +279,7 @@ func UpgradeableStoreLoader(upgradeInfoPath string) StoreLoader {
 		// i.e., upgrades.Height == currentHeight
 		// then do LoadLatestVersionAndUpgrade
 		// Else, do DefaultStoreLoader
-		if (len(upgrades.StoreUpgrades.Renamed) > 0 ||  len(upgrades.StoreUpgrades.Deleted) > 0 ) &&
+		if (len(upgrades.StoreUpgrades.Renamed) > 0 || len(upgrades.StoreUpgrades.Deleted) > 0) &&
 			upgrades.Height == lastBlockHeight {
 			err = ms.LoadLatestVersionAndUpgrade(&upgrades.StoreUpgrades)
 			if err != nil {

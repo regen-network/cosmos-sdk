@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/x/upgrade"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -138,13 +139,13 @@ func useDefaultLoader(app *BaseApp) {
 
 func useUpgradeLoader(upgrades *store.StoreUpgrades) func(*BaseApp) {
 	return func(app *BaseApp) {
-		app.SetStoreLoader(StoreLoaderWithUpgrade(upgrades))
+		app.SetStoreLoader(upgrade.StoreLoaderWithUpgrade(upgrades))
 	}
 }
 
 func useFileUpgradeLoader(upgradeInfoPath string) func(*BaseApp) {
 	return func(app *BaseApp) {
-		app.SetStoreLoader(UpgradeableStoreLoader(upgradeInfoPath))
+		app.SetStoreLoader(upgrade.UpgradeableStoreLoader(upgradeInfoPath))
 	}
 }
 
