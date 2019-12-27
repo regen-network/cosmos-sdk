@@ -44,7 +44,7 @@ type StoreUpgrades struct {
 	Deleted []string      `json:"deleted"`
 }
 
-type UpgradeFile struct {
+type UpgradeInfo struct {
 	Height        int64         `json:"height"`
 	StoreUpgrades StoreUpgrades `json:"store_upgrades"`
 }

@@ -12,8 +12,6 @@ import (
 	store "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/upgrade/internal/types"
-	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
@@ -66,27 +64,30 @@ func (k Keeper) ScheduleUpgrade(ctx sdk.Context, plan types.Plan) sdk.Error {
 }
 
 // WriteToFile adds plan height to upgrade-info.json
-func (k Keeper) WriteToFile(height int64) {
-	home := viper.GetString(cli.HomeFlag)
-	upgradeFilePath := home + "upgrade-info.json"
-	info, err := ioutil.ReadFile(upgradeFilePath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s does not exist\n", upgradeFilePath)
-	}
-	var upgradeFile store.UpgradeFile
-	err = json.Unmarshal(info, upgradeFile)
-	if err != nil {
-		return
+func (k Keeper) DumpUpgradeInfoToFile(height int64) {
+	// TODO get RootDir
+	upgradeInfoFilePath := "./upgrade-info.json"
+	_, err := os.Stat(upgradeInfoFilePath)
+
+	// If the upgrade-info file is not found, create new
+	if os.IsNotExist(err) {
+		_, err := os.Create(upgradeInfoFilePath)
+
+		if err != nil {
+			fmt.Println("error while creating upgrade-info file", err)
+		}
 	}
 
-	upgradeFile.Height = height
+	var upgradeInfo store.UpgradeInfo
 
-	info, err = json.Marshal(upgradeFile)
+	upgradeInfo.Height = height
+
+	info, err := json.Marshal(upgradeInfo)
 	if err != nil {
 		_ = fmt.Errorf("Unable to marshal ")
 	}
-	err = ioutil.WriteFile(upgradeFilePath, info, 0644)
 
+	err = ioutil.WriteFile(upgradeInfoFilePath, info, 0644)
 }
 
 func (k Keeper) GetDoneHeight(ctx sdk.Context, name string) int64 {

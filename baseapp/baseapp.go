@@ -14,7 +14,6 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	"github.com/cosmos/cosmos-sdk/store"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -220,14 +219,6 @@ func (app *BaseApp) LoadLatestVersion(baseKey *sdk.KVStoreKey) error {
 // DefaultStoreLoader will be used by default and loads the latest version
 func DefaultStoreLoader(ms sdk.CommitMultiStore) error {
 	return ms.LoadLatestVersion()
-}
-
-// StoreLoaderWithUpgrade is used to prepare baseapp with a fixed StoreLoader
-// pattern. This is useful in test cases, or with custom upgrade loading logic.
-func StoreLoaderWithUpgrade(upgrades *storetypes.StoreUpgrades) StoreLoader {
-	return func(ms sdk.CommitMultiStore) error {
-		return ms.LoadLatestVersionAndUpgrade(upgrades)
-	}
 }
 
 // LoadVersion loads the BaseApp application version. It will panic if called
