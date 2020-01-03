@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"fmt"
-	"github.com/kr/pretty"
 	"testing"
 	"time"
 
@@ -49,7 +47,6 @@ func (s *TestSuite) TestKeeper() {
 	s.Require().Nil(authorization)
 
 	s.T().Log("verify if authorization is accepted")
-	x := types.SendAuthorization{SpendLimit: newCoins}
 	s.keeper.Grant(s.ctx, granteeAddr, granterAddr, x, now.Add(time.Hour))
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{})
 	s.Require().NotNil(authorization)
@@ -74,26 +71,27 @@ func (s *TestSuite) TestKeeper() {
 	s.keeper.Revoke(s.ctx, recepientAddr, granterAddr, bank.MsgSend{})
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{})
 	s.Require().NotNil(authorization)
-
 }
 
-func (s *TestSuite) TestKeeperFees() {
-	err := s.bankKeeper.SetCoins(s.ctx, granterAddr, sdk.NewCoins(sdk.NewInt64Coin("steak", 10000)))
+func (s *TestSuite) TestDispatchActions() {
+	smallCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 20))
+	someCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 123))
+	sendTxCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 4))
+	actualCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 1000))
+	afterSendCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 996))
+
+	err := s.bankKeeper.SetCoins(s.ctx, granterAddr, actualCoin)
 	s.Require().Nil(err)
-	s.Require().True(s.bankKeeper.GetCoins(s.ctx, granterAddr).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("steak", 10000))))
+	s.Require().True(s.bankKeeper.GetCoins(s.ctx, granterAddr).IsEqual(actualCoin))
 
 	now := s.ctx.BlockHeader().Time
 	s.Require().NotNil(now)
-
-	smallCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 20))
-	someCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 123))
-	//lotCoin := sdk.NewCoins(sdk.NewInt64Coin("steak", 4567))
 
 	msgs := types.MsgExecDelegated{
 		Grantee: granteeAddr,
 		Msgs: []sdk.Msg{
 			bank.MsgSend{
-				Amount:      sdk.NewCoins(sdk.NewInt64Coin("steak", 2)),
+				Amount:      sendTxCoin,
 				FromAddress: granterAddr,
 				ToAddress:   recepientAddr,
 			},
@@ -106,16 +104,31 @@ func (s *TestSuite) TestKeeperFees() {
 	s.Require().Nil(result)
 	s.Require().NotNil(error)
 
-	s.T().Log("verify dispatch executes with correct information")
+
 	// grant authorization
 	s.keeper.Grant(s.ctx, granteeAddr, granterAddr, types.SendAuthorization{SpendLimit: smallCoin}, now)
 	authorization, _ := s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{})
 	s.Require().NotNil(authorization)
 	s.Require().Equal(authorization.MsgType(), bank.MsgSend{})
+	granterBal := s.bankKeeper.GetCoins(s.ctx, granterAddr)
+	granteeBal := s.bankKeeper.GetCoins(s.ctx, granteeAddr)
+	recepientBal := s.bankKeeper.GetCoins(s.ctx, recepientAddr)
+	s.Require().Equal(granterBal, actualCoin)
+	s.Require().Empty(granteeBal)
+	s.Require().Empty(recepientBal)
+
 	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgs.Msgs)
+
 	s.Require().NotNil(result)
 	s.Require().Nil(error)
-	fmt.Printf("%# v", pretty.Formatter(result))
+
+	granterBal = s.bankKeeper.GetCoins(s.ctx, granterAddr)
+	granteeBal = s.bankKeeper.GetCoins(s.ctx, granteeAddr)
+	recepientBal = s.bankKeeper.GetCoins(s.ctx, recepientAddr)
+
+	s.Require().Equal(granterBal, afterSendCoin)
+	s.Require().Empty(granteeBal)
+	s.Require().Equal(recepientBal, sendTxCoin)
 
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{})
 	s.Require().NotNil(authorization)
@@ -137,7 +150,6 @@ func (s *TestSuite) TestKeeperFees() {
 	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgs.Msgs)
 	s.Require().Nil(result)
 	s.Require().NotNil(error)
-	fmt.Printf("%# v", pretty.Formatter(error))
 
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{})
 	s.Require().NotNil(authorization)
