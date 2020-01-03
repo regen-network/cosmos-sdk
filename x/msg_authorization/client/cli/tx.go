@@ -60,8 +60,12 @@ func GetCmdGrantAuthorization(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			var authorization types.Authorization
-			err = cdc.UnmarshalBinaryBare(bz, &authorization)
+			//			bz := []byte(`{
+			//  "type": "cosmos-sdk/SendAuthorization",
+			//  "value":{"spendlimit": "100stake"}
+			//}`)
+			var authorization types.SendAuthorization
+			err = cdc.UnmarshalJSON(bz, &authorization)
 			if err != nil {
 				return err
 			}

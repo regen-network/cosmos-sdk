@@ -41,12 +41,12 @@ func (s *TestSuite) TestKeeper() {
 
 	newCoins := sdk.NewCoins(sdk.NewInt64Coin("steak", 100))
 	s.T().Log("verify if expired authorization is rejected")
-	s.keeper.Grant(s.ctx, granterAddr, granteeAddr, types.SendAuthorization{SpendLimit: newCoins}, now.Add(-1*time.Hour))
+	x := types.SendAuthorization{SpendLimit: newCoins}
+	s.keeper.Grant(s.ctx, granterAddr, granteeAddr, x, now.Add(-1*time.Hour))
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{})
 	s.Require().Nil(authorization)
 
 	s.T().Log("verify if authorization is accepted")
-	x := types.SendAuthorization{SpendLimit: newCoins}
 	s.keeper.Grant(s.ctx, granteeAddr, granterAddr, x, now.Add(time.Hour))
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{})
 	s.Require().NotNil(authorization)
@@ -104,7 +104,7 @@ func (s *TestSuite) TestDispatchActions() {
 	s.Require().Nil(result)
 	s.Require().NotNil(error)
 
-	s.T().Log("verify dispatch executes with correct information")
+
 	// grant authorization
 	s.keeper.Grant(s.ctx, granteeAddr, granterAddr, types.SendAuthorization{SpendLimit: smallCoin}, now)
 	authorization, _ := s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{})
