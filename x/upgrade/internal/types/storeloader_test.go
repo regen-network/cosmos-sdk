@@ -14,9 +14,9 @@ import (
 	"testing"
 )
 
-func useUpgradeLoader(upgrades *store.StoreUpgrades) func(*baseapp.BaseApp) {
+func useUpgradeLoader(upgrades *store.StoreUpgrades, upgradeInfoPath string) func(*baseapp.BaseApp) {
 	return func(app *baseapp.BaseApp) {
-		app.SetStoreLoader(StoreLoaderWithUpgrade(upgrades))
+		app.SetStoreLoader(StoreLoaderWithUpgrade(upgrades, upgradeInfoPath))
 	}
 }
 
@@ -93,14 +93,9 @@ func TestSetLoader(t *testing.T) {
 					OldKey: "foo",
 					NewKey: "bar",
 				}},
-			}),
+			}, configName),
 			origStoreKey: "foo",
 			loadStoreKey: "bar",
-		},
-		"file loader with missing file": {
-			setLoader:    useFileUpgradeLoader(configName + "randomchars"),
-			origStoreKey: "bnk",
-			loadStoreKey: "bnk",
 		},
 		"file loader with existing file": {
 			setLoader:    useFileUpgradeLoader(configName),

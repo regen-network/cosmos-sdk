@@ -17,11 +17,11 @@ import (
 
 // StoreLoaderWithUpgrade is used to prepare baseapp with a fixed StoreLoader
 // pattern. This is useful in test cases, or with custom upgrade loading logic.
-func StoreLoaderWithUpgrade(storeUpgrades *storetypes.StoreUpgrades) baseapp.StoreLoader {
+func StoreLoaderWithUpgrade(storeUpgrades *storetypes.StoreUpgrades, upgradeInfoPath string) baseapp.StoreLoader {
 	return func(ms sdk.CommitMultiStore) error {
 
 		home := viper.GetString(flags.FlagHome)
-		upgradeInfoPath := filepath.Join(home, "upgrade-info.json")
+		upgradeInfoPath = filepath.Join(home, "upgrade-info.json")
 
 		var lastBlockHeight = ms.LastCommitID().Version
 		upgrades, err := GetUpgradeInfoDataFromFile(upgradeInfoPath)
