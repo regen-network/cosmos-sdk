@@ -55,9 +55,13 @@ func (keeper Keeper) GetProposal(ctx sdk.Context, proposalID uint64) (proposal t
 	if bz == nil {
 		return
 	}
-	proposalI := keeper.proposalCodecCtr()
-	proto.Cdc.MustUnmarshalBinaryLengthPrefixed(bz, proposalI)
-	proposal = ProposalFromProposalI(proposalI)
+	if keeper.proposalCodecCtr != nil {
+		proposalI := keeper.proposalCodecCtr()
+		proto.Cdc.MustUnmarshalBinaryLengthPrefixed(bz, proposalI)
+		proposal = ProposalFromProposalI(proposalI)
+	} else {
+		keeper.cdc.MustUnmarshalBinaryLengthPrefixed(bz, proposal)
+	}
 	return proposal, true
 }
 
@@ -78,21 +82,28 @@ func ProposalFromProposalI(proposalI types.ProposalI) types.Proposal {
 // SetProposal set a proposal to store
 func (keeper Keeper) SetProposal(ctx sdk.Context, proposal types.Proposal) {
 	store := ctx.KVStore(keeper.storeKey)
-	proposalI := keeper.proposalCodecCtr()
-	err := proposalI.SetContent(proposal.Content)
-	if err != nil {
-		panic(err)
+	if keeper.proposalCodecCtr != nil {
+		// if we have a protobuf proposal codec use protobuf
+		proposalI := keeper.proposalCodecCtr()
+		err := proposalI.SetContent(proposal.Content)
+		if err != nil {
+			panic(err)
+		}
+		proposalI.SetProposalID(proposal.ProposalID)
+		proposalI.SetSubmitTime(proposal.SubmitTime)
+		proposalI.SetDepositEndTime(proposal.DepositEndTime)
+		proposalI.SetVotingStartTime(proposal.VotingStartTime)
+		proposalI.SetVotingEndTime(proposal.VotingEndTime)
+		proposalI.SetFinalTallyResult(proposal.FinalTallyResult)
+		proposalI.SetTotalDeposit(proposal.TotalDeposit)
+		proposalI.SetStatus(proposal.Status)
+		bz := proto.Cdc.MustMarshalBinaryLengthPrefixed(proposalI)
+		store.Set(types.ProposalKey(proposal.ProposalID), bz)
+	} else {
+		// otherwise default to amino
+		bz := keeper.cdc.MustMarshalBinaryLengthPrefixed(proposal)
+		store.Set(types.ProposalKey(proposal.ProposalID), bz)
 	}
-	proposalI.SetProposalID(proposal.ProposalID)
-	proposalI.SetSubmitTime(proposal.SubmitTime)
-	proposalI.SetDepositEndTime(proposal.DepositEndTime)
-	proposalI.SetVotingStartTime(proposal.VotingStartTime)
-	proposalI.SetVotingEndTime(proposal.VotingEndTime)
-	proposalI.SetFinalTallyResult(proposal.FinalTallyResult)
-	proposalI.SetTotalDeposit(proposal.TotalDeposit)
-	proposalI.SetStatus(proposal.Status)
-	bz := proto.Cdc.MustMarshalBinaryLengthPrefixed(proposalI)
-	store.Set(types.ProposalKey(proposal.ProposalID), bz)
 }
 
 // DeleteProposal deletes a proposal from store
