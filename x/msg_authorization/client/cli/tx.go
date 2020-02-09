@@ -31,12 +31,42 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	AuthorizationTxCmd.AddCommand(flags.PostCommands(
+		GetCmdGenerateAuthorization(cdc),
 		GetCmdGrantAuthorization(cdc),
 		GetCmdRevokeAuthorization(cdc),
 		GetCmdSendAs(cdc),
 	)...)
 
 	return AuthorizationTxCmd
+}
+
+func GetCmdGenerateAuthorization(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "generate-authorization",
+		Short: "Generate",
+		Long:  "Generate authorization",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+
+			coins, err := sdk.ParseCoins(args[0])
+			if err != nil {
+				return err
+			}
+
+			msgAuthorization := &types.SendAuthorization{SpendLimit: coins}
+
+			json, err := cliCtx.Codec.MarshalJSON(msgAuthorization)
+			if err != nil {
+				return err
+			}
+
+			_, _ = fmt.Fprintf(cliCtx.Output, "%s\n", json)
+			return nil
+		},
+	}
+	return cmd
 }
 
 func GetCmdGrantAuthorization(cdc *codec.Codec) *cobra.Command {
