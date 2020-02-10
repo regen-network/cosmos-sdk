@@ -109,6 +109,8 @@ func GetCmdGrantAuthorization(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
+			fmt.Printf("msg::: %+v", msg)
+
 			return authclient.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
 
 		},
