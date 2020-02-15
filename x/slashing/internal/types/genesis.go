@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	gogotypes "github.com/gogo/protobuf/types"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -28,12 +29,12 @@ func NewGenesisState(
 
 // MissedBlock
 type MissedBlock struct {
-	Index  int64 `json:"index" yaml:"index"`
-	Missed bool  `json:"missed" yaml:"missed"`
+	Index  int64                `json:"index" yaml:"index"`
+	Missed *gogotypes.BoolValue `json:"missed" yaml:"missed"`
 }
 
 // NewMissedBlock creates a new MissedBlock instance
-func NewMissedBlock(index int64, missed bool) MissedBlock {
+func NewMissedBlock(index int64, missed *gogotypes.BoolValue) MissedBlock {
 	return MissedBlock{
 		Index:  index,
 		Missed: missed,

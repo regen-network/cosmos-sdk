@@ -82,7 +82,8 @@ func (k Keeper) IterateValidatorMissedBlockBitArray(ctx sdk.Context,
 		if bz == nil {
 			continue
 		}
-		k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &gogotypes.BoolValue{Value: missed})
+		missedValue := &gogotypes.BoolValue{Value: missed}
+		k.cdc.MustUnmarshalBinaryLengthPrefixed(bz, missedValue)
 		if handler(index, missed) {
 			break
 		}
@@ -131,7 +132,8 @@ func (k Keeper) IsTombstoned(ctx sdk.Context, consAddr sdk.ConsAddress) bool {
 // missed a block in the current window
 func (k Keeper) SetValidatorMissedBlockBitArray(ctx sdk.Context, address sdk.ConsAddress, index int64, missed bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := k.cdc.MustMarshalBinaryLengthPrefixed(&gogotypes.BoolValue{Value: missed})
+	missedValue := &gogotypes.BoolValue{Value: missed}
+	bz := k.cdc.MustMarshalBinaryLengthPrefixed(missedValue)
 	store.Set(types.GetValidatorMissedBlockBitArrayKey(address, index), bz)
 }
 

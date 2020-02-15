@@ -4,6 +4,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/slashing/internal/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/exported"
+	gogotypes "github.com/gogo/protobuf/types"
 )
 
 // InitGenesis initialize default parameters
@@ -30,7 +31,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, stakingKeeper types.StakingKeep
 			panic(err)
 		}
 		for _, missed := range array {
-			keeper.SetValidatorMissedBlockBitArray(ctx, address, missed.Index, missed.Missed)
+			keeper.SetValidatorMissedBlockBitArray(ctx, address, missed.Index, missed.Missed.Value)
 		}
 	}
 
@@ -50,7 +51,7 @@ func ExportGenesis(ctx sdk.Context, keeper Keeper) (data types.GenesisState) {
 		localMissedBlocks := []types.MissedBlock{}
 
 		keeper.IterateValidatorMissedBlockBitArray(ctx, address, func(index int64, missed bool) (stop bool) {
-			localMissedBlocks = append(localMissedBlocks, types.NewMissedBlock(index, missed))
+			localMissedBlocks = append(localMissedBlocks, types.NewMissedBlock(index, &gogotypes.BoolValue{Value: missed}))
 			return false
 		})
 		missedBlocks[bechAddr] = localMissedBlocks
