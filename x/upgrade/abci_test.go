@@ -8,6 +8,7 @@ import (
 	"time"
 
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	"github.com/cosmos/cosmos-sdk/x/upgrade/internal/keeper"
 
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -35,7 +36,7 @@ var s TestSuite
 
 func setupTest(height int64, skip map[int64]bool) TestSuite {
 	db := dbm.NewMemDB()
-	app := simapp.NewSimApp(log.NewNopLogger(), db, nil, true, skip, 0)
+	app := simapp.NewSimApp(log.NewNopLogger(), db, nil, true, skip, 0, simapp.DefaultNodeHome)
 	genesisState := simapp.NewDefaultGenesisState()
 	stateBytes, err := codec.MarshalJSONIndent(app.Codec(), genesisState)
 	if err != nil {
@@ -419,4 +420,6 @@ func TestDumpUpgradeInfoToFile(t *testing.T) {
 
 	t.Log("Verify upgrade height from file matches ")
 	require.Equal(t, upgradeInfo.Height, planHeight)
+
+	require.NoError(t, keeper.DeleteUpgradeFile(upgradeInfoFilePath))
 }
