@@ -38,6 +38,10 @@ func (p Plan) ValidateBasic() error {
 
 // ShouldExecute returns true if the Plan is ready to execute given the current context
 func (p Plan) ShouldExecute(ctx sdk.Context) bool {
+	fmt.Println("inside ShouldExecute:",
+		p.Time.IsZero(), ctx.BlockTime().Before(p.Time),
+		p.Height, ctx.BlockHeight())
+
 	if !p.Time.IsZero() {
 		return !ctx.BlockTime().Before(p.Time)
 	}
