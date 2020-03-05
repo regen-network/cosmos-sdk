@@ -19,7 +19,7 @@ type PrivKeyNistp256 struct {
 }
 
 func (privKey PrivKeyNistp256) PubKey() crypto.PubKey {
-
+	PrivKeyFromBytes(privKey)
 	return privKey.PubKey()
 }
 

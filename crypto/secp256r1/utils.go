@@ -2,12 +2,27 @@ package secp256r1
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"io"
-
-	"github.com/cosmos/cosmos-sdk/crypto"
+	"math/big"
 )
 
 func NewPrivateKey(rand io.Reader) {
-	privatekey, err := ecdsa.GenerateKey(pubKeyCurve, rand) // this generates a public & private key pair
+	_, _ = ecdsa.GenerateKey(pubKeyCurve, rand) // this generates a public & private key pair
 
+}
+
+func PrivKeyFromBytes(curve elliptic.Curve, pk []byte) *ecdsa.PrivateKey {
+	x, y := curve.ScalarBaseMult(pk)
+
+	priv := &ecdsa.PrivateKey{
+		PublicKey: ecdsa.PublicKey{
+			Curve: curve,
+			X:     x,
+			Y:     y,
+		},
+		D: new(big.Int).SetBytes(pk),
+	}
+
+	return priv
 }
