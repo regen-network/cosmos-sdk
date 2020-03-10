@@ -21,11 +21,13 @@ type PrivKeyNistp256 struct {
 
 func (privKey PrivKeyNistp256) PubKey() crypto.PubKey {
 	privateKey := PrivKeyFromBytes(pubKeyCurve, privKey.PrivKey[:])
+	//TODO implement pubkey interface
 	return privateKey.PublicKey
 }
 
-func (privKey PrivKeyNistp256) Sign(rand io.Reader, err error) {
+func (privKey PrivKeyNistp256) Sign() (sign []byte, err error) {
 	privateKey := PrivKeyFromBytes(pubKeyCurve, privKey.PrivKey[:])
+	//TODO add sign params
 	return privateKey.Sign()
 }
 
