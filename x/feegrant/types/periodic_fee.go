@@ -8,26 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/feegrant/exported"
 )
 
-// PeriodicFeeAllowance extends FeeAllowance to allow for both a maximum cap,
-// as well as a limit per time period.
-type PeriodicFeeAllowance struct {
-	// Basic contains the absolute limits over all time.
-	// These limit (total and expiration) are enforced in addition to the
-	// periodic limits defined below (which renew every period)
-	Basic BasicFeeAllowance
-
-	// Period is the duration of one period
-	Period Duration
-	// PeriodSpendLimit is the maximum amount of tokens to be spent in this period
-	PeriodSpendLimit sdk.Coins
-
-	// PeriodCanSpend is how much is available until PeriodReset
-	PeriodCanSpend sdk.Coins
-
-	// PeriodRest is when the PeriodCanSpend is updated
-	PeriodReset ExpiresAt
-}
-
 var _ exported.FeeAllowance = (*PeriodicFeeAllowance)(nil)
 
 // Accept can use fee payment requested as well as timestamp/height of the current block
@@ -40,7 +20,7 @@ var _ exported.FeeAllowance = (*PeriodicFeeAllowance)(nil)
 //
 // If remove is true (regardless of the error), the FeeAllowance will be deleted from storage
 // (eg. when it is used up). (See call to RevokeFeeAllowance in Keeper.UseGrantedFees)
-func (a *PeriodicFeeAllowance) Accept(fee sdk.Coins, blockTime time.Time, blockHeight int64) (bool, error) {
+func (a PeriodicFeeAllowance) Accept(fee sdk.Coins, blockTime time.Time, blockHeight int64) (bool, error) {
 	if a.Basic.Expiration.IsExpired(blockTime, blockHeight) {
 		return true, sdkerrors.Wrap(ErrFeeLimitExpired, "absolute limit")
 	}
@@ -67,7 +47,7 @@ func (a *PeriodicFeeAllowance) Accept(fee sdk.Coins, blockTime time.Time, blockH
 // It will also update the PeriodReset. If we are within one Period, it will update from the
 // last PeriodReset (eg. if you always do one tx per day, it will always reset the same time)
 // If we are more then one period out (eg. no activity in a week), reset is one Period from the execution of this method
-func (a *PeriodicFeeAllowance) TryResetPeriod(blockTime time.Time, blockHeight int64) {
+func (a PeriodicFeeAllowance) TryResetPeriod(blockTime time.Time, blockHeight int64) {
 	if !a.PeriodReset.IsZero() && !a.PeriodReset.IsExpired(blockTime, blockHeight) {
 		return
 	}
@@ -80,9 +60,9 @@ func (a *PeriodicFeeAllowance) TryResetPeriod(blockTime time.Time, blockHeight i
 
 	// If we are within the period, step from expiration (eg. if you always do one tx per day, it will always reset the same time)
 	// If we are more then one period out (eg. no activity in a week), reset is one period from this time
-	a.PeriodReset = a.PeriodReset.MustStep(a.Period)
+	a.PeriodReset = a.PeriodReset.MustStep(*a.Period)
 	if a.PeriodReset.IsExpired(blockTime, blockHeight) {
-		a.PeriodReset = a.PeriodReset.FastForward(blockTime, blockHeight).MustStep(a.Period)
+		a.PeriodReset = a.PeriodReset.FastForward(blockTime, blockHeight).MustStep(*a.Period)
 	}
 }
 
@@ -90,9 +70,9 @@ func (a *PeriodicFeeAllowance) TryResetPeriod(blockTime time.Time, blockHeight i
 // it will subtract the dumpHeight from any height-based expiration to ensure that
 // the elapsed number of blocks this allowance is valid for is fixed.
 // (For PeriodReset and Basic.Expiration)
-func (a *PeriodicFeeAllowance) PrepareForExport(dumpTime time.Time, dumpHeight int64) exported.FeeAllowance {
+func (a PeriodicFeeAllowance) PrepareForExport(dumpTime time.Time, dumpHeight int64) exported.FeeAllowance {
 	return &PeriodicFeeAllowance{
-		Basic: BasicFeeAllowance{
+		Basic: &BasicFeeAllowance{
 			SpendLimit: a.Basic.SpendLimit,
 			Expiration: a.Basic.Expiration.PrepareForExport(dumpTime, dumpHeight),
 		},

@@ -6,21 +6,14 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-// ExpiresAt is a point in time where something expires.
-// It may be *either* block time or block height
-type ExpiresAt struct {
-	Time   time.Time `json:"time" yaml:"time"`
-	Height int64     `json:"height" yaml:"height"`
-}
-
 // ExpiresAtTime creates an expiration at the given time
-func ExpiresAtTime(t time.Time) ExpiresAt {
-	return ExpiresAt{Time: t}
+func ExpiresAtTime(t time.Time) *ExpiresAt {
+	return &ExpiresAt{Time: t}
 }
 
 // ExpiresAtHeight creates an expiration at the given height
-func ExpiresAtHeight(h int64) ExpiresAt {
-	return ExpiresAt{Height: h}
+func ExpiresAtHeight(h int64) *ExpiresAt {
+	return &ExpiresAt{Height: h}
 }
 
 // ValidateBasic performs basic sanity checks.
@@ -44,9 +37,9 @@ func (e ExpiresAt) IsZero() bool {
 // new value, depending on what was set on the original expiration
 func (e ExpiresAt) FastForward(t time.Time, h int64) ExpiresAt {
 	if !e.Time.IsZero() {
-		return ExpiresAtTime(t)
+		return *ExpiresAtTime(t)
 	}
-	return ExpiresAtHeight(h)
+	return *ExpiresAtHeight(h)
 }
 
 // IsExpired returns if the time or height is *equal to* or greater
@@ -85,28 +78,21 @@ func (e ExpiresAt) Step(d Duration) (ExpiresAt, error) {
 }
 
 // MustStep is like Step, but panics on error
-func (e ExpiresAt) MustStep(d Duration) ExpiresAt {
+func (e ExpiresAt) MustStep(d Duration) *ExpiresAt {
 	res, err := e.Step(d)
 	if err != nil {
 		panic(err)
 	}
-	return res
+	return &res
 }
 
 // PrepareForExport will deduct the dumpHeight from the expiration, so when this is
 // reloaded after a hard fork, the actual number of allowed blocks is constant
-func (e ExpiresAt) PrepareForExport(dumpTime time.Time, dumpHeight int64) ExpiresAt {
+func (e *ExpiresAt) PrepareForExport(dumpTime time.Time, dumpHeight int64) *ExpiresAt {
 	if e.Height != 0 {
 		e.Height -= dumpHeight
 	}
 	return e
-}
-
-// Duration is a repeating unit of either clock time or number of blocks.
-// This is designed to be added to an ExpiresAt struct.
-type Duration struct {
-	Clock time.Duration `json:"clock" yaml:"clock"`
-	Block int64         `json:"block" yaml:"block"`
 }
 
 // ClockDuration creates an Duration by clock time
@@ -115,8 +101,8 @@ func ClockDuration(d time.Duration) Duration {
 }
 
 // BlockDuration creates an Duration by block height
-func BlockDuration(h int64) Duration {
-	return Duration{Block: h}
+func BlockDuration(h int64) *Duration {
+	return &Duration{Block: h}
 }
 
 // ValidateBasic performs basic sanity checks

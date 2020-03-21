@@ -19,7 +19,7 @@ func TestExpiresAt(t *testing.T) {
 		after   *ExpiresAt
 	}{
 		"basic": {
-			example: ExpiresAtHeight(100),
+			example: *ExpiresAtHeight(100),
 			valid:   true,
 			before:  &ExpiresAt{Height: 50, Time: now},
 			after:   &ExpiresAt{Height: 122, Time: now},
@@ -35,13 +35,13 @@ func TestExpiresAt(t *testing.T) {
 			valid:   false,
 		},
 		"match height": {
-			example: ExpiresAtHeight(1000),
+			example: *ExpiresAtHeight(1000),
 			valid:   true,
 			before:  &ExpiresAt{Height: 999, Time: now},
 			after:   &ExpiresAt{Height: 1000, Time: now},
 		},
 		"match time": {
-			example: ExpiresAtTime(now),
+			example: *ExpiresAtTime(now),
 			valid:   true,
 			before:  &ExpiresAt{Height: 43, Time: now.Add(-1 * time.Second)},
 			after:   &ExpiresAt{Height: 76, Time: now},
@@ -79,16 +79,16 @@ func TestDurationValid(t *testing.T) {
 		incompatible ExpiresAt
 	}{
 		"basic height": {
-			period:       BlockDuration(100),
+			period:       *BlockDuration(100),
 			valid:        true,
-			compatible:   ExpiresAtHeight(50),
-			incompatible: ExpiresAtTime(now),
+			compatible:   *ExpiresAtHeight(50),
+			incompatible: *ExpiresAtTime(now),
 		},
 		"basic time": {
 			period:       ClockDuration(time.Hour),
 			valid:        true,
-			compatible:   ExpiresAtTime(now),
-			incompatible: ExpiresAtHeight(50),
+			compatible:   *ExpiresAtTime(now),
+			incompatible: *ExpiresAtHeight(50),
 		},
 		"zero": {
 			period: Duration{},
@@ -103,7 +103,7 @@ func TestDurationValid(t *testing.T) {
 			valid:  false,
 		},
 		"negative block": {
-			period: BlockDuration(-5),
+			period: *BlockDuration(-5),
 			valid:  false,
 		},
 	}
@@ -134,19 +134,19 @@ func TestDurationStep(t *testing.T) {
 		result  ExpiresAt
 	}{
 		"add height": {
-			expires: ExpiresAtHeight(789),
-			period:  BlockDuration(100),
+			expires: *ExpiresAtHeight(789),
+			period:  *BlockDuration(100),
 			valid:   true,
-			result:  ExpiresAtHeight(889),
+			result:  *ExpiresAtHeight(889),
 		},
 		"add time": {
-			expires: ExpiresAtTime(now),
+			expires: *ExpiresAtTime(now),
 			period:  ClockDuration(time.Hour),
 			valid:   true,
-			result:  ExpiresAtTime(now.Add(time.Hour)),
+			result:  *ExpiresAtTime(now.Add(time.Hour)),
 		},
 		"mismatch": {
-			expires: ExpiresAtHeight(789),
+			expires: *ExpiresAtHeight(789),
 			period:  ClockDuration(time.Hour),
 			valid:   false,
 		},
