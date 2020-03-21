@@ -21,12 +21,8 @@ message FeeAllowance {
     option (cosmos_proto.interface_type) = "github.com/cosmos/cosmos-sdk/x/feegrant/exported.FeeAllowance";
 
     oneof sum {
-        cosmos_sdk.x.feegrant.v1.BasicFeeAllowance BasicFeeAllowance = 1 [
-            (gogoproto.nullable) = true
-        ];
-        cosmos_sdk.x.feegrant.v1.PeriodicFeeAllowance PeriodicFeeAllowance = 2[
-            (gogoproto.nullable) = true
-        ];
+        cosmos_sdk.x.feegrant.v1.BasicFeeAllowance BasicFeeAllowance = 1;
+        cosmos_sdk.x.feegrant.v1.PeriodicFeeAllowance PeriodicFeeAllowance = 2;
     }
 }
 
@@ -49,7 +45,6 @@ message FeeAllowanceGrant {
     bytes Granter = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
     bytes Grantee = 2 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
 	bytes Allowance = 3 [
-        (gogoproto.nullable) = true,
         (gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/x/feegrant/exported.FeeAllowance"
     ];
 }
