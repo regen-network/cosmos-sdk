@@ -55,9 +55,6 @@ var (
 	GetValidatorSlashEventKey                  = types.GetValidatorSlashEventKey
 	HandleCommunityPoolSpendProposal           = keeper.HandleCommunityPoolSpendProposal
 	NewQuerier                                 = keeper.NewQuerier
-	MakeTestCodec                              = keeper.MakeTestCodec
-	CreateTestInputDefault                     = keeper.CreateTestInputDefault
-	CreateTestInputAdvanced                    = keeper.CreateTestInputAdvanced
 	ParamKeyTable                              = types.ParamKeyTable
 	DefaultParams                              = types.DefaultParams
 	RegisterCodec                              = types.RegisterCodec
@@ -111,7 +108,6 @@ var (
 	ParamStoreKeyBonusProposerReward     = types.ParamStoreKeyBonusProposerReward
 	ParamStoreKeyWithdrawAddrEnabled     = types.ParamStoreKeyWithdrawAddrEnabled
 	ModuleCdc                            = types.ModuleCdc
-	NewCodec                             = types.NewCodec
 	EventTypeSetWithdrawAddress          = types.EventTypeSetWithdrawAddress
 	EventTypeRewards                     = types.EventTypeRewards
 	EventTypeCommission                  = types.EventTypeCommission
@@ -156,5 +152,4 @@ type (
 	ValidatorSlashEvent                    = types.ValidatorSlashEvent
 	ValidatorSlashEvents                   = types.ValidatorSlashEvents
 	ValidatorOutstandingRewards            = types.ValidatorOutstandingRewards
-	Codec                                  = types.Codec
 )

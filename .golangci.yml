@@ -3,11 +3,13 @@
 #   timeout: 5m
 
 linters:
+  disable-all: true
   enable:
     - bodyclose
     - deadcode
     - depguard
     - dogsled
+    # - errcheck
     - goconst
     - gocritic
     - gofmt
@@ -30,8 +32,6 @@ linters:
     - unconvert
     - unused
     - misspell
-  disable:
-    - errcheck
 
 issues:
   exclude-rules:

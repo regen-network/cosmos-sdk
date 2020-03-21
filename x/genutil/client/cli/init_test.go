@@ -27,10 +27,10 @@ import (
 var testMbm = module.NewBasicManager(genutil.AppModuleBasic{})
 
 func TestInitCmd(t *testing.T) {
-	defer server.SetupViper(t)()
-	defer setupClientHome(t)()
+	t.Cleanup(server.SetupViper(t))
+	t.Cleanup(server.SetupViper(t))
 	home, cleanup := tests.NewTestCaseDir(t)
-	defer cleanup()
+	t.Cleanup(cleanup)
 
 	logger := log.NewNopLogger()
 	cfg, err := tcmd.ParseConfig()
@@ -50,11 +50,11 @@ func setupClientHome(t *testing.T) func() {
 }
 
 func TestEmptyState(t *testing.T) {
-	defer server.SetupViper(t)()
-	defer setupClientHome(t)()
+	t.Cleanup(server.SetupViper(t))
+	t.Cleanup(setupClientHome(t))
 
 	home, cleanup := tests.NewTestCaseDir(t)
-	defer cleanup()
+	t.Cleanup(cleanup)
 
 	logger := log.NewNopLogger()
 	cfg, err := tcmd.ParseConfig()
@@ -94,9 +94,9 @@ func TestEmptyState(t *testing.T) {
 
 func TestStartStandAlone(t *testing.T) {
 	home, cleanup := tests.NewTestCaseDir(t)
-	defer cleanup()
+	t.Cleanup(cleanup)
 	viper.Set(cli.HomeFlag, home)
-	defer setupClientHome(t)()
+	t.Cleanup(setupClientHome(t))
 
 	logger := log.NewNopLogger()
 	cfg, err := tcmd.ParseConfig()
@@ -113,18 +113,20 @@ func TestStartStandAlone(t *testing.T) {
 	svr, err := abciServer.NewServer(svrAddr, "socket", app)
 	require.Nil(t, err, "error creating listener")
 	svr.SetLogger(logger.With("module", "abci-server"))
-	svr.Start()
+	err = svr.Start()
+	require.NoError(t, err)
 
 	timer := time.NewTimer(time.Duration(2) * time.Second)
 	for range timer.C {
-		svr.Stop()
+		err = svr.Stop()
+		require.NoError(t, err)
 		break
 	}
 }
 
 func TestInitNodeValidatorFiles(t *testing.T) {
 	home, cleanup := tests.NewTestCaseDir(t)
-	defer cleanup()
+	t.Cleanup(cleanup)
 	viper.Set(cli.HomeFlag, home)
 	viper.Set(flags.FlagName, "moniker")
 	cfg, err := tcmd.ParseConfig()

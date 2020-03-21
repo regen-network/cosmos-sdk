@@ -3,7 +3,7 @@ version: 2.1
 executors:
   golang:
     docker:
-      - image: circleci/golang:1.13
+      - image: circleci/golang:1.14
   docs:
     docker:
       - image: tendermintdev/docker-website-deployment
@@ -230,7 +230,7 @@ workflows:
           filters:
             branches:
               only:
-                - docs-theme-latest
+                - docs-staging
       - build-docs:
           context: docs-deployment-release
           filters:

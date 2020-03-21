@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -44,11 +45,12 @@ func (l MockLogger) With(kvs ...interface{}) log.Logger {
 	panic("not implemented")
 }
 
-func defaultContext(key types.StoreKey) types.Context {
+func defaultContext(t *testing.T, key types.StoreKey) types.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
 	cms.MountStoreWithDB(key, types.StoreTypeIAVL, db)
-	cms.LoadLatestVersion()
+	err := cms.LoadLatestVersion()
+	require.NoError(t, err)
 	ctx := types.NewContext(cms, abci.Header{}, false, log.NewNopLogger())
 	return ctx
 }
@@ -60,7 +62,7 @@ func TestCacheContext(t *testing.T) {
 	k2 := []byte("key")
 	v2 := []byte("value")
 
-	ctx := defaultContext(key)
+	ctx := defaultContext(t, key)
 	store := ctx.KVStore(key)
 	store.Set(k1, v1)
 	require.Equal(t, v1, store.Get(k1))
@@ -82,7 +84,7 @@ func TestCacheContext(t *testing.T) {
 
 func TestLogContext(t *testing.T) {
 	key := types.NewKVStoreKey(t.Name())
-	ctx := defaultContext(key)
+	ctx := defaultContext(t, key)
 	logger := NewMockLogger()
 	ctx = ctx.WithLogger(logger)
 	ctx.Logger().Debug("debug")
@@ -110,6 +112,7 @@ func TestContextWithCustom(t *testing.T) {
 	logger := NewMockLogger()
 	voteinfos := []abci.VoteInfo{{}}
 	meter := types.NewGasMeter(10000)
+	blockGasMeter := types.NewGasMeter(20000)
 	minGasPrices := types.DecCoins{types.NewInt64DecCoin("feetoken", 1)}
 
 	ctx = types.NewContext(nil, header, ischeck, logger)
@@ -121,7 +124,8 @@ func TestContextWithCustom(t *testing.T) {
 		WithTxBytes(txbytes).
 		WithVoteInfos(voteinfos).
 		WithGasMeter(meter).
-		WithMinGasPrices(minGasPrices)
+		WithMinGasPrices(minGasPrices).
+		WithBlockGasMeter(blockGasMeter)
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, chainid, ctx.ChainID())
 	require.Equal(t, ischeck, ctx.IsCheckTx())
@@ -130,6 +134,25 @@ func TestContextWithCustom(t *testing.T) {
 	require.Equal(t, voteinfos, ctx.VoteInfos())
 	require.Equal(t, meter, ctx.GasMeter())
 	require.Equal(t, minGasPrices, ctx.MinGasPrices())
+	require.Equal(t, blockGasMeter, ctx.BlockGasMeter())
+
+	require.False(t, ctx.WithIsCheckTx(false).IsCheckTx())
+
+	// test IsReCheckTx
+	require.False(t, ctx.IsReCheckTx())
+	ctx = ctx.WithIsCheckTx(false)
+	ctx = ctx.WithIsReCheckTx(true)
+	require.True(t, ctx.IsCheckTx())
+	require.True(t, ctx.IsReCheckTx())
+
+	// test consensus param
+	require.Nil(t, ctx.ConsensusParams())
+	cp := &abci.ConsensusParams{}
+	require.Equal(t, cp, ctx.WithConsensusParams(cp).ConsensusParams())
+
+	// test inner context
+	newContext := context.WithValue(ctx.Context(), "key", "value")
+	require.NotEqual(t, ctx.Context(), ctx.WithContext(newContext).Context())
 }
 
 // Testing saving/loading of header fields to/from the context

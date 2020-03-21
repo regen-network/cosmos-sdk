@@ -15,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/store/cachekv"
 	"github.com/cosmos/cosmos-sdk/store/tracekv"
 	"github.com/cosmos/cosmos-sdk/store/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
@@ -311,7 +312,7 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 		}
 
 		iterator.Close()
-		res.Value = cdc.MustMarshalBinaryLengthPrefixed(KVs)
+		res.Value = cdc.MustMarshalBinaryBare(KVs)
 
 	default:
 		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unexpected query path: %v", req.Path))
@@ -357,8 +358,8 @@ var _ types.Iterator = (*iavlIterator)(nil)
 func newIAVLIterator(tree *iavl.ImmutableTree, start, end []byte, ascending bool) *iavlIterator {
 	iter := &iavlIterator{
 		tree:      tree,
-		start:     types.Cp(start),
-		end:       types.Cp(end),
+		start:     sdk.CopyBytes(start),
+		end:       sdk.CopyBytes(end),
 		ascending: ascending,
 		iterCh:    make(chan tmkv.Pair), // Set capacity > 0?
 		quitCh:    make(chan struct{}),

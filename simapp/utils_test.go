@@ -8,12 +8,13 @@ import (
 	tmkv "github.com/tendermint/tendermint/libs/kv"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
 func TestGetSimulationLog(t *testing.T) {
-	cdc := MakeCodec()
+	cdc := codecstd.MakeCodec(ModuleBasics)
 
 	decoders := make(sdk.StoreDecoderRegistry)
 	decoders[auth.StoreKey] = func(cdc *codec.Codec, kvAs, kvBs tmkv.Pair) string { return "10" }
@@ -30,7 +31,7 @@ func TestGetSimulationLog(t *testing.T) {
 		},
 		{
 			auth.StoreKey,
-			[]tmkv.Pair{{Key: auth.GlobalAccountNumberKey, Value: cdc.MustMarshalBinaryLengthPrefixed(uint64(10))}},
+			[]tmkv.Pair{{Key: auth.GlobalAccountNumberKey, Value: cdc.MustMarshalBinaryBare(uint64(10))}},
 			"10",
 		},
 		{

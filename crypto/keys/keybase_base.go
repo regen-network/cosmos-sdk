@@ -1,10 +1,6 @@
 package keys
 
 import (
-	"bufio"
-	"fmt"
-	"os"
-
 	"github.com/cosmos/go-bip39"
 	"github.com/pkg/errors"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
@@ -102,51 +98,6 @@ func SecpPrivKeyGen(bz []byte) tmcrypto.PrivKey {
 	var bzArr [32]byte
 	copy(bzArr[:], bz)
 	return secp256k1.PrivKeySecp256k1(bzArr)
-}
-
-// SignWithLedger signs a binary message with the ledger device referenced by an Info object
-// and returns the signed bytes and the public key. It returns an error if the device could
-// not be queried or it returned an error.
-func (kb baseKeybase) SignWithLedger(info Info, msg []byte) (sig []byte, pub tmcrypto.PubKey, err error) {
-	i := info.(ledgerInfo)
-	priv, err := crypto.NewPrivKeyLedgerSecp256k1Unsafe(i.Path)
-	if err != nil {
-		return
-	}
-
-	sig, err = priv.Sign(msg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return sig, priv.PubKey(), nil
-}
-
-// DecodeSignature decodes a an length-prefixed binary signature from standard input
-// and return it as a byte slice.
-func (kb baseKeybase) DecodeSignature(info Info, msg []byte) (sig []byte, pub tmcrypto.PubKey, err error) {
-	_, err = fmt.Fprintf(os.Stderr, "Message to sign:\n\n%s\n", msg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	buf := bufio.NewReader(os.Stdin)
-	_, err = fmt.Fprintf(os.Stderr, "\nEnter Amino-encoded signature:\n")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// will block until user inputs the signature
-	signed, err := buf.ReadString('\n')
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if err := CryptoCdc.UnmarshalBinaryLengthPrefixed([]byte(signed), sig); err != nil {
-		return nil, nil, errors.Wrap(err, "failed to decode signature")
-	}
-
-	return sig, info.GetPubKey(), nil
 }
 
 // CreateAccount creates an account Info object.
@@ -295,4 +246,31 @@ func IsSupportedAlgorithm(supported []SigningAlgo, algo SigningAlgo) bool {
 		}
 	}
 	return false
+}
+
+// SignWithLedger signs a binary message with the ledger device referenced by an Info object
+// and returns the signed bytes and the public key. It returns an error if the device could
+// not be queried or it returned an error.
+func SignWithLedger(info Info, msg []byte) (sig []byte, pub tmcrypto.PubKey, err error) {
+	switch info.(type) {
+	case *ledgerInfo, ledgerInfo:
+	default:
+		return nil, nil, errors.New("not a ledger object")
+	}
+	path, err := info.GetPath()
+	if err != nil {
+		return
+	}
+
+	priv, err := crypto.NewPrivKeyLedgerSecp256k1Unsafe(*path)
+	if err != nil {
+		return
+	}
+
+	sig, err = priv.Sign(msg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return sig, priv.PubKey(), nil
 }

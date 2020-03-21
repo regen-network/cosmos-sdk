@@ -11,9 +11,8 @@ import (
 	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	"github.com/tendermint/tendermint/crypto/xsalsa20symmetric"
 
-	tmos "github.com/tendermint/tendermint/libs/os"
-
 	"github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
+	"github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 const (
@@ -84,6 +83,10 @@ func UnarmorInfoBytes(armorStr string) ([]byte, error) {
 // UnarmorPubKeyBytes returns the pubkey byte slice, a string of the algo type, and an error
 func UnarmorPubKeyBytes(armorStr string) (bz []byte, algo string, err error) {
 	bz, header, err := unarmorBytes(armorStr, blockTypePubKey)
+	if err != nil {
+		return nil, "", fmt.Errorf("couldn't unarmor bytes: %v", err)
+	}
+
 	switch header[headerVersion] {
 	case "0.0.0":
 		return bz, defaultAlgo, err
@@ -92,6 +95,8 @@ func UnarmorPubKeyBytes(armorStr string) (bz []byte, algo string, err error) {
 			header[headerType] = defaultAlgo
 		}
 		return bz, header[headerType], err
+	case "":
+		return nil, "", fmt.Errorf("header's version field is empty")
 	default:
 		err = fmt.Errorf("unrecognized version: %v", header[headerVersion])
 		return nil, "", err
@@ -134,7 +139,7 @@ func encryptPrivKey(privKey crypto.PrivKey, passphrase string) (saltBytes []byte
 	saltBytes = crypto.CRandBytes(16)
 	key, err := bcrypt.GenerateFromPassword(saltBytes, []byte(passphrase), BcryptSecurityParameter)
 	if err != nil {
-		tmos.Exit("Error generating bcrypt key from passphrase: " + err.Error())
+		panic(errors.Wrap(err, "error generating bcrypt key from passphrase"))
 	}
 	key = crypto.Sha256(key) // get 32 bytes
 	privKeyBytes := privKey.Bytes()
@@ -151,7 +156,7 @@ func UnarmorDecryptPrivKey(armorStr string, passphrase string) (privKey crypto.P
 		return privKey, "", fmt.Errorf("unrecognized armor type: %v", blockType)
 	}
 	if header["kdf"] != "bcrypt" {
-		return privKey, "", fmt.Errorf("unrecognized KDF type: %v", header["KDF"])
+		return privKey, "", fmt.Errorf("unrecognized KDF type: %v", header["kdf"])
 	}
 	if header["salt"] == "" {
 		return privKey, "", fmt.Errorf("missing salt bytes")
@@ -171,7 +176,7 @@ func UnarmorDecryptPrivKey(armorStr string, passphrase string) (privKey crypto.P
 func decryptPrivKey(saltBytes []byte, encBytes []byte, passphrase string) (privKey crypto.PrivKey, err error) {
 	key, err := bcrypt.GenerateFromPassword(saltBytes, []byte(passphrase), BcryptSecurityParameter)
 	if err != nil {
-		tmos.Exit("error generating bcrypt key from passphrase: " + err.Error())
+		return privKey, errors.Wrap(err, "error generating bcrypt key from passphrase")
 	}
 	key = crypto.Sha256(key) // Get 32 bytes
 	privKeyBytes, err := xsalsa20symmetric.DecryptSymmetric(encBytes, key)

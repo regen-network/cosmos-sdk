@@ -6,10 +6,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/cosmos/cosmos-sdk/codec"
 )
 
 // create a decimal from a decimal string (ex. "1234.5678")
@@ -303,7 +304,8 @@ func TestDecMarshalJSON(t *testing.T) {
 			if !tt.wantErr {
 				assert.Equal(t, tt.want, string(got), "incorrect marshalled value")
 				unmarshalledDec := NewDec(0)
-				unmarshalledDec.UnmarshalJSON(got)
+				err := unmarshalledDec.UnmarshalJSON(got)
+				assert.NoError(t, err)
 				assert.Equal(t, tt.d, unmarshalledDec, "incorrect unmarshalled value")
 			}
 		})

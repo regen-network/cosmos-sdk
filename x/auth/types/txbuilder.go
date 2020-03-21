@@ -59,8 +59,8 @@ func NewTxBuilderFromCLI(input io.Reader) TxBuilder {
 	}
 	txbldr := TxBuilder{
 		keybase:            kb,
-		accountNumber:      uint64(viper.GetInt64(flags.FlagAccountNumber)),
-		sequence:           uint64(viper.GetInt64(flags.FlagSequence)),
+		accountNumber:      viper.GetUint64(flags.FlagAccountNumber),
+		sequence:           viper.GetUint64(flags.FlagSequence),
 		gas:                flags.GasFlagVar.Gas,
 		gasAdjustment:      viper.GetFloat64(flags.FlagGasAdjustment),
 		simulateAndExecute: flags.GasFlagVar.Simulate,
@@ -286,8 +286,9 @@ func MakeSignature(keybase keys.Keybase, name, passphrase string,
 	if err != nil {
 		return
 	}
+
 	return StdSignature{
-		PubKey:    pubkey,
+		PubKey:    pubkey.Bytes(),
 		Signature: sigBytes,
 	}, nil
 }

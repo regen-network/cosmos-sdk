@@ -57,6 +57,7 @@ const (
 	FlagBroadcastMode      = "broadcast-mode"
 	FlagDryRun             = "dry-run"
 	FlagGenerateOnly       = "generate-only"
+	FlagOffline            = "offline"
 	FlagIndentResponse     = "indent"
 	FlagListenAddr         = "laddr"
 	FlagMaxOpenConnections = "max-open"
@@ -68,6 +69,7 @@ const (
 	FlagKeyringBackend     = "keyring-backend"
 	FlagPage               = "page"
 	FlagLimit              = "limit"
+	FlagUnsafeCORS         = "unsafe-cors"
 )
 
 // LineBreak can be included in a command list to provide a blank line
@@ -113,9 +115,10 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().StringP(FlagBroadcastMode, "b", BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
 		c.Flags().Bool(FlagTrustNode, true, "Trust connected full node (don't verify proofs for responses)")
 		c.Flags().Bool(FlagDryRun, false, "ignore the --gas flag and perform a simulation of a transaction, but don't broadcast it")
-		c.Flags().Bool(FlagGenerateOnly, false, "Build an unsigned transaction and write it to STDOUT (when enabled, the local Keybase is not accessible and the node operates offline)")
+		c.Flags().Bool(FlagGenerateOnly, false, "Build an unsigned transaction and write it to STDOUT (when enabled, the local Keybase is not accessible)")
+		c.Flags().Bool(FlagOffline, false, "Offline mode (does not allow any online functionality")
 		c.Flags().BoolP(FlagSkipConfirmation, "y", false, "Skip tx broadcasting prompt confirmation")
-		c.Flags().String(FlagKeyringBackend, DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
+		c.Flags().String(FlagKeyringBackend, DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
 
 		// --gas can accept integers and "simulate"
 		c.Flags().Var(&GasFlagVar, "gas", fmt.Sprintf(
@@ -141,6 +144,7 @@ func RegisterRestServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Uint(FlagMaxOpenConnections, 1000, "The number of maximum open connections")
 	cmd.Flags().Uint(FlagRPCReadTimeout, 10, "The RPC read timeout (in seconds)")
 	cmd.Flags().Uint(FlagRPCWriteTimeout, 10, "The RPC write timeout (in seconds)")
+	cmd.Flags().Bool(FlagUnsafeCORS, false, "Allows CORS requests from all domains. For development purposes only, use it at your own risk.")
 
 	return cmd
 }

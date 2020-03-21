@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/tendermint/crypto/bcrypt"
-	"github.com/tendermint/tendermint/crypto"
 	tmcrypto "github.com/tendermint/tendermint/crypto"
 	cryptoAmino "github.com/tendermint/tendermint/crypto/encoding/amino"
 
@@ -58,7 +56,7 @@ func newKeyringKeybase(db keyring.Keyring, opts ...KeybaseOption) Keybase {
 
 // NewKeyring creates a new instance of a keyring. Keybase
 // options can be applied when generating this new Keybase.
-// Available backends are "os", "file", "test".
+// Available backends are "os", "file", "kwallet", "pass", "test".
 func NewKeyring(
 	appName, backend, rootDir string, userInput io.Reader, opts ...KeybaseOption,
 ) (Keybase, error) {
@@ -218,10 +216,10 @@ func (kb keyringKeybase) Sign(name, passphrase string, msg []byte) (sig []byte, 
 		}
 
 	case ledgerInfo:
-		return kb.base.SignWithLedger(info, msg)
+		return SignWithLedger(info, msg)
 
 	case offlineInfo, multiInfo:
-		return kb.base.DecodeSignature(info, msg)
+		return nil, info.GetPubKey(), errors.New("cannot sign with offline keys")
 	}
 
 	sig, err = priv.Sign(msg)
@@ -419,29 +417,7 @@ func (kb keyringKeybase) Delete(name, _ string, _ bool) error {
 // The oldpass must be the current passphrase used for encryption, getNewpass is
 // a function to get the passphrase to permanently replace the current passphrase.
 func (kb keyringKeybase) Update(name, oldpass string, getNewpass func() (string, error)) error {
-	info, err := kb.Get(name)
-	if err != nil {
-		return err
-	}
-
-	switch linfo := info.(type) {
-	case localInfo:
-		key, _, err := mintkey.UnarmorDecryptPrivKey(linfo.PrivKeyArmor, oldpass)
-		if err != nil {
-			return err
-		}
-
-		newpass, err := getNewpass()
-		if err != nil {
-			return err
-		}
-
-		kb.writeLocalKey(name, key, newpass, linfo.GetAlgo())
-		return nil
-
-	default:
-		return fmt.Errorf("locally stored key required; received: %v", reflect.TypeOf(info).String())
-	}
+	return errors.New("unsupported operation")
 }
 
 // SupportedAlgos returns a list of supported signing algorithms.
@@ -453,9 +429,6 @@ func (kb keyringKeybase) SupportedAlgos() []SigningAlgo {
 func (kb keyringKeybase) SupportedAlgosLedger() []SigningAlgo {
 	return kb.base.SupportedAlgosLedger()
 }
-
-// CloseDB releases the lock and closes the storage backend.
-func (kb keyringKeybase) CloseDB() {}
 
 func (kb keyringKeybase) writeLocalKey(name string, priv tmcrypto.PrivKey, _ string, algo SigningAlgo) Info {
 	// encrypt private key using keyring
@@ -569,6 +542,7 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 			buf := bufio.NewReader(buf)
 			pass, err := input.GetPassword("Enter keyring passphrase:", buf)
 			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
 				continue
 			}
 
@@ -591,7 +565,7 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 				continue
 			}
 
-			saltBytes := crypto.CRandBytes(16)
+			saltBytes := tmcrypto.CRandBytes(16)
 			passwordHash, err := bcrypt.GenerateFromPassword(saltBytes, []byte(pass), 2)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
