@@ -26,8 +26,14 @@ func (pubKey PubKeyNistp256) Bytes() []byte {
 	return bz
 }
 
-func (pubKey PubKeyNistp256) VerifyBytes(msg []byte, sig []byte) bool {}
+func (pubKey PubKeyNistp256) VerifyBytes(msg []byte, sig []byte) bool {
 
-func (pubKey PubKeyNistp256) String() string {}
+}
 
-func (pubKey PubKeyNistp256) Equals(other crypto.PubKey) bool {}
+func (pubKey PubKeyNistp256) String() string {
+
+}
+
+func (pubKey PubKeyNistp256) Equals(other crypto.PubKey) bool {
+
+}

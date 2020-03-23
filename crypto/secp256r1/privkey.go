@@ -15,37 +15,37 @@ var pubKeyCurve = elliptic.P256()
 const PrivKeyNistp256Size = 256
 
 // PrivKeyNistp256 implements crypto.PrivKey.
-type PrivKeyNistp256 struct {
-	PrivKey [PrivKeyNistp256Size]byte
+type PrivKeyNistp256 [PrivKeyNistp256Size]byte
 }
 
-func (privKey PrivKeyNistp256) PubKey() crypto.PubKey {
-	privateKey := PrivKeyFromBytes(pubKeyCurve, privKey.PrivKey[:])
+func (privKey PrivKeyNistp256) PubKey() PubKeyNistp256 {
+	_, publicKey := PrivKeyFromBytes(pubKeyCurve, privKey[:])
 	//TODO implement pubkey interface
-	return privateKey.PublicKey
+	pubKey := [64]byte(publicKey.)
+	return pubKey
 }
 
-func (privKey PrivKeyNistp256) Sign() (sign []byte, err error) {
-	privateKey := PrivKeyFromBytes(pubKeyCurve, privKey.PrivKey[:])
+func (privKey PrivKeyNistp256) Sign(msg []byte) (sign []byte, err error) {
+	privateKey, _ := PrivKeyFromBytes(pubKeyCurve, privKey[:])
 	//TODO add sign params
 	return privateKey.Sign()
 }
 
 func (privKey PrivKeyNistp256) Bytes() []byte {
-	return nil
+	return cdc.MustMarshalBinaryBare(privKey)
 }
 
 func genPrivKey(rand io.Reader) (PrivKeyNistp256, error) {
 	privatekey, err := ecdsa.GenerateKey(pubKeyCurve, rand) // this generates a public & private key pair
 	if err != nil {
 		fmt.Println(err)
-		return _, err
+		return [256]byte{}, err
 	}
 	x := new(big.Int)
 	x = privatekey.D
 	y := x.Bytes()
 
 	var z PrivKeyNistp256
-	copy(z.PrivKey[:], y)
+	copy(z[:], y)
 	return z, nil
 }

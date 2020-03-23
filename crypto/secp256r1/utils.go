@@ -12,7 +12,7 @@ func NewPrivateKey(rand io.Reader) {
 
 }
 
-func PrivKeyFromBytes(curve elliptic.Curve, pk []byte) *ecdsa.PrivateKey {
+func PrivKeyFromBytes(curve elliptic.Curve, pk []byte) (*ecdsa.PrivateKey, ecdsa.PublicKey) {
 	x, y := curve.ScalarBaseMult(pk)
 
 	priv := &ecdsa.PrivateKey{
@@ -24,5 +24,5 @@ func PrivKeyFromBytes(curve elliptic.Curve, pk []byte) *ecdsa.PrivateKey {
 		D: new(big.Int).SetBytes(pk),
 	}
 
-	return priv
+	return priv, priv.PublicKey
 }
