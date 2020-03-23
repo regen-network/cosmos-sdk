@@ -20,7 +20,7 @@ import (
 type KeeperTestSuite struct {
 	suite.Suite
 
-	cdc *codec.Codec
+	cdc codec.Marshaler
 	ctx sdk.Context
 	dk  keeper.Keeper
 
@@ -40,7 +40,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	cdc := codec.New()
 	types.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
-	suite.cdc = cdc
+	suite.cdc = codec.NewHybridCodec(cdc)
 
 	delCapKey := sdk.NewKVStoreKey("delKey")
 
@@ -48,7 +48,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	ms.MountStoreWithDB(delCapKey, sdk.StoreTypeIAVL, db)
 	ms.LoadLatestVersion()
 
-	suite.dk = keeper.NewKeeper(cdc, delCapKey)
+	suite.dk = keeper.NewKeeper(suite.cdc, delCapKey)
 	suite.ctx = sdk.NewContext(ms, abci.Header{ChainID: "test-chain-id", Time: time.Now().UTC(), Height: 1234}, false, log.NewNopLogger())
 
 	suite.addr = mustAddr("cosmos157ez5zlaq0scm9aycwphhqhmg3kws4qusmekll")

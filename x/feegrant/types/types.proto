@@ -17,7 +17,7 @@ import "types/types.proto";
 
 message FeeAllowance {
     option (gogoproto.equal)             = false;
-    option (gogoproto.goproto_getters)             = false;
+    option (gogoproto.goproto_getters)             = true;
     option (cosmos_proto.interface_type) = "github.com/cosmos/cosmos-sdk/x/feegrant/exported.FeeAllowance";
 
     oneof sum {
@@ -44,9 +44,7 @@ message Duration {
 message FeeAllowanceGrant {
     bytes Granter = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
     bytes Grantee = 2 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
-	bytes Allowance = 3 [
-        (gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/x/feegrant/exported.FeeAllowance"
-    ];
+	FeeAllowance Allowance = 3;
 }
 
 // BasicFeeAllowance implements FeeAllowance with a one-time grant of tokens
@@ -72,10 +70,7 @@ message BasicFeeAllowance {
 message MsgGrantFeeAllowance {
     bytes Granter = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
     bytes Grantee = 2 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
-	bytes Allowance = 3 [
-        (gogoproto.nullable) = true,
-        (gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/x/feegrant/exported.FeeAllowance"
-    ];
+	FeeAllowance Allowance = 3;
 }
 
 // PeriodicFeeAllowance extends FeeAllowance to allow for both a maximum cap,

@@ -18,12 +18,12 @@ func (a FeeAllowanceGrant) ValidateBasic() error {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "cannot self-grant fee authorization")
 	}
 
-	return a.Allowance.ValidateBasic()
+	return a.Allowance.GetFeeAllowance().ValidateBasic()
 }
 
 // PrepareForExport will make all needed changes to the allowance to prepare to be
 // re-imported at height 0, and return a copy of this grant.
 func (a FeeAllowanceGrant) PrepareForExport(dumpTime time.Time, dumpHeight int64) FeeAllowanceGrant {
-	a.Allowance = a.Allowance.PrepareForExport(dumpTime, dumpHeight)
+	// a.Allowance = a.GetAllowance().PrepareForExport(dumpTime, dumpHeight)
 	return a
 }

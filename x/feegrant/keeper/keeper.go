@@ -8,7 +8,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/x/feegrant/exported"
 	"github.com/cosmos/cosmos-sdk/x/feegrant/types"
 )
 
@@ -65,7 +64,7 @@ func (k Keeper) RevokeFeeAllowance(ctx sdk.Context, granter, grantee sdk.AccAddr
 // GetFeeAllowance returns the allowance between the granter and grantee.
 // If there is none, it returns nil, nil.
 // Returns an error on parsing issues
-func (k Keeper) GetFeeAllowance(ctx sdk.Context, granter, grantee sdk.AccAddress) exported.FeeAllowance {
+func (k Keeper) GetFeeAllowance(ctx sdk.Context, granter, grantee sdk.AccAddress) *types.FeeAllowance {
 	grant, found := k.GetFeeGrant(ctx, granter, grantee)
 	if !found {
 		return nil
@@ -144,7 +143,7 @@ func (k Keeper) UseGrantedFees(ctx sdk.Context, granter, grantee sdk.AccAddress,
 		return sdkerrors.Wrapf(types.ErrNoAllowance, "grant missing")
 	}
 
-	remove, err := grant.Allowance.Accept(fee, ctx.BlockTime(), ctx.BlockHeight())
+	remove, err := grant.GetAllowance().GetFeeAllowance().Accept(fee, ctx.BlockTime(), ctx.BlockHeight())
 	if err == nil {
 		ctx.EventManager().EmitEvent(
 			sdk.NewEvent(

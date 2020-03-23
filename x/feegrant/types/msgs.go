@@ -3,12 +3,10 @@ package types
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/x/feegrant/exported"
 )
 
-
-func NewMsgGrantFeeAllowance(granter sdk.AccAddress, grantee sdk.AccAddress, allowance exported.FeeAllowance) MsgGrantFeeAllowance {
-	return MsgGrantFeeAllowance{Granter: granter, Grantee: grantee, Allowance: allowance}
+func NewMsgGrantFeeAllowance(granter sdk.AccAddress, grantee sdk.AccAddress, allowance FeeAllowance) MsgGrantFeeAllowance {
+	return MsgGrantFeeAllowance{Granter: granter, Grantee: grantee, Allowance: &allowance}
 }
 
 func (msg MsgGrantFeeAllowance) Route() string {
@@ -27,7 +25,7 @@ func (msg MsgGrantFeeAllowance) ValidateBasic() error {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, "missing grantee address")
 	}
 
-	return msg.Allowance.ValidateBasic()
+	return msg.Allowance.GetFeeAllowance().ValidateBasic()
 }
 
 func (msg MsgGrantFeeAllowance) GetSignBytes() []byte {
