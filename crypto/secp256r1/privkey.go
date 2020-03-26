@@ -16,18 +16,16 @@ const PrivKeyNistp256Size = 256
 
 // PrivKeyNistp256 implements crypto.PrivKey.
 type PrivKeyNistp256 [PrivKeyNistp256Size]byte
-}
 
 func (privKey PrivKeyNistp256) PubKey() PubKeyNistp256 {
 	_, publicKey := PrivKeyFromBytes(pubKeyCurve, privKey[:])
-	//TODO implement pubkey interface
-	pubKey := [64]byte(publicKey.)
-	return pubKey
+	//TODO implement pubkey
+	return publicKey
 }
 
 func (privKey PrivKeyNistp256) Sign(msg []byte) (sign []byte, err error) {
 	privateKey, _ := PrivKeyFromBytes(pubKeyCurve, privKey[:])
-	//TODO add sign params
+	//TODO add sign params(decide on random generation algo to be used)
 	return privateKey.Sign()
 }
 

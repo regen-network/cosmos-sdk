@@ -13,7 +13,6 @@ const PubKeySr25519Size = 32
 // PubKeySr25519 implements crypto.PubKey for the Sr25519 signature scheme.
 type PubKeyNistp256 [PubKeySr25519Size]byte
 
-//TODO pubkey methods
 func (pubKey PubKeyNistp256) Address() crypto.Address {
 	return crypto.Address(tmhash.SumTruncated(pubKey[:]))
 }
