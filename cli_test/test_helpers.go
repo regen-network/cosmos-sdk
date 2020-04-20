@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/tests"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/stretchr/testify/require"
 	tmtypes "github.com/tendermint/tendermint/types"
 	"io/ioutil"
@@ -305,6 +306,77 @@ func (f *Fixtures) KeyAddress(name string) sdk.AccAddress {
 func (f *Fixtures) CLIConfig(key, value string, flags ...string) {
 	cmd := fmt.Sprintf("%s config --home=%s %s %s", f.SimcliBinary, f.SimcliHome, key, value)
 	executeWriteCheckErr(f.T, addFlags(cmd, flags))
+}
+
+//___________________________________________________________________________________
+// gaiacli tx send/sign/broadcast
+
+// TxSend is gaiacli tx send
+func (f *Fixtures) TxSend(from string, to sdk.AccAddress, amount sdk.Coin, flags ...string) (bool, string, string) {
+	cmd := fmt.Sprintf("%s tx send --keyring-backend=test %s %s %s %v", f.SimcliBinary, from,
+		to, amount, f.Flags())
+	return executeWriteRetStdStreams(f.T, addFlags(cmd, flags), clientkeys.DefaultKeyPass)
+}
+
+// TxSign is gaiacli tx sign
+func (f *Fixtures) TxSign(signer, fileName string, flags ...string) (bool, string, string) {
+	cmd := fmt.Sprintf("%s tx sign %v --keyring-backend=test --from=%s %v", f.SimcliBinary,
+		f.Flags(), signer, fileName)
+	return executeWriteRetStdStreams(f.T, addFlags(cmd, flags), clientkeys.DefaultKeyPass)
+}
+
+// TxBroadcast is gaiacli tx broadcast
+func (f *Fixtures) TxBroadcast(fileName string, flags ...string) (bool, string, string) {
+	cmd := fmt.Sprintf("%s tx broadcast %v %v", f.SimcliBinary, f.Flags(), fileName)
+	return executeWriteRetStdStreams(f.T, addFlags(cmd, flags), clientkeys.DefaultKeyPass)
+}
+
+// TxEncode is gaiacli tx encode
+func (f *Fixtures) TxEncode(fileName string, flags ...string) (bool, string, string) {
+	cmd := fmt.Sprintf("%s tx encode %v %v", f.SimcliBinary, f.Flags(), fileName)
+	return executeWriteRetStdStreams(f.T, addFlags(cmd, flags), clientkeys.DefaultKeyPass)
+}
+
+// TxMultisign is gaiacli tx multisign
+func (f *Fixtures) TxMultisign(fileName, name string, signaturesFiles []string,
+	flags ...string) (bool, string, string) {
+
+	cmd := fmt.Sprintf("%s tx multisign --keyring-backend=test %v %s %s %s", f.SimcliBinary, f.Flags(),
+		fileName, name, strings.Join(signaturesFiles, " "),
+	)
+	return executeWriteRetStdStreams(f.T, cmd)
+}
+
+//___________________________________________________________________________________
+// gaiacli query account
+
+// QueryAccount is gaiacli query account
+func (f *Fixtures) QueryAccount(address sdk.AccAddress, flags ...string) auth.BaseAccount {
+	cmd := fmt.Sprintf("%s query account %s %v", f.SimcliBinary, address, f.Flags())
+	out, _ := tests.ExecuteT(f.T, addFlags(cmd, flags), "")
+	var initRes map[string]json.RawMessage
+	err := json.Unmarshal([]byte(out), &initRes)
+	require.NoError(f.T, err, "out %v, err %v", out, err)
+	value := initRes["value"]
+	var acc auth.BaseAccount
+	cdc := codec.New()
+	codec.RegisterCrypto(cdc)
+	err = cdc.UnmarshalJSON(value, &acc)
+	require.NoError(f.T, err, "value %v, err %v", string(value), err)
+	return acc
+}
+
+// QueryBalances executes the bank query balances command for a given address and
+// flag set.
+func (f *Fixtures) QueryBalances(address sdk.AccAddress, flags ...string) sdk.Coins {
+	cmd := fmt.Sprintf("%s query bank balances %s %v", f.SimcliBinary, address, f.Flags())
+	out, _ := tests.ExecuteT(f.T, addFlags(cmd, flags), "")
+
+	var balances sdk.Coins
+
+	require.NoError(f.T, cdc.UnmarshalJSON([]byte(out), &balances), "out %v\n", out)
+
+	return balances
 }
 
 //___________________________________________________________________________________
