@@ -18,6 +18,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -97,7 +98,7 @@ func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLICon
 		_, _ = fmt.Fprintf(os.Stderr, "%s\n\n", json)
 
 		buf := bufio.NewReader(os.Stdin)
-		ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf)
+		ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf, os.Stderr)
 		if err != nil || !ok {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", "cancelled transaction")
 			return err
@@ -184,7 +185,7 @@ func SignStdTx(
 
 	var signedStdTx authtypes.StdTx
 
-	info, err := txBldr.Keybase().Get(name)
+	info, err := txBldr.Keybase().Key(name)
 	if err != nil {
 		return signedStdTx, err
 	}
@@ -193,7 +194,7 @@ func SignStdTx(
 
 	// check whether the address is a signer
 	if !isTxSigner(sdk.AccAddress(addr), stdTx.GetSigners()) {
-		return signedStdTx, fmt.Errorf("%s: %s", authtypes.ErrorInvalidSigner, name)
+		return signedStdTx, fmt.Errorf("%s: %s", sdkerrors.ErrorInvalidSigner, name)
 	}
 
 	if !offline {
@@ -216,7 +217,7 @@ func SignStdTxWithSignerAddress(
 
 	// check whether the address is a signer
 	if !isTxSigner(addr, stdTx.GetSigners()) {
-		return signedStdTx, fmt.Errorf("%s: %s", authtypes.ErrorInvalidSigner, name)
+		return signedStdTx, fmt.Errorf("%s: %s", sdkerrors.ErrorInvalidSigner, name)
 	}
 
 	if !offline {

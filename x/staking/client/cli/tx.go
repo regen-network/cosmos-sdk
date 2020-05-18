@@ -53,6 +53,7 @@ func NewTxCmd(m codec.Marshaler, txg tx.Generator, ar tx.AccountRetriever) *cobr
 		NewRedelegateCmd(m, txg, ar),
 		NewUnbondCmd(m, txg, ar),
 	)...)
+
 	return stakingTxCmd
 }
 
@@ -66,7 +67,7 @@ func NewCreateValidatorCmd(m codec.Marshaler, txg tx.Generator, ar tx.AccountRet
 				WithTxGenerator(txg).
 				WithAccountRetriever(ar)
 
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithMarshaler(m)
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithMarshaler(m)
 
 			txf, msg, err := NewBuildCreateValidatorMsg(cliCtx, txf)
 			if err != nil {
@@ -84,10 +85,11 @@ func NewCreateValidatorCmd(m codec.Marshaler, txg tx.Generator, ar tx.AccountRet
 	cmd.Flags().String(FlagIP, "", fmt.Sprintf("The node's public IP. It takes effect only when used in combination with --%s", flags.FlagGenerateOnly))
 	cmd.Flags().String(FlagNodeID, "", "The node's ID")
 
-	cmd.MarkFlagRequired(flags.FlagFrom)
-	cmd.MarkFlagRequired(FlagAmount)
-	cmd.MarkFlagRequired(FlagPubKey)
-	cmd.MarkFlagRequired(FlagMoniker)
+	_ = cmd.MarkFlagRequired(flags.FlagFrom)
+	_ = cmd.MarkFlagRequired(FlagAmount)
+	_ = cmd.MarkFlagRequired(FlagPubKey)
+	_ = cmd.MarkFlagRequired(FlagMoniker)
+
 	return flags.PostCommands(cmd)[0]
 }
 
@@ -101,7 +103,7 @@ func NewEditValidatorCmd(m codec.Marshaler, txg tx.Generator, ar tx.AccountRetri
 				WithTxGenerator(txg).
 				WithAccountRetriever(ar)
 
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithMarshaler(m)
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithMarshaler(m)
 
 			valAddr := cliCtx.GetFromAddress()
 			description := types.NewDescription(
@@ -137,11 +139,15 @@ func NewEditValidatorCmd(m codec.Marshaler, txg tx.Generator, ar tx.AccountRetri
 			}
 
 			msg := types.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate, newMinSelfDelegation)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
 
 			// build and sign the transaction, then broadcast to Tendermint
 			return tx.GenerateOrBroadcastTx(cliCtx, txf, msg)
 		},
 	}
+
 	return flags.PostCommands(cmd)[0]
 }
 
@@ -165,7 +171,7 @@ $ %s tx staking delegate cosmosvaloper1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm 10
 				WithTxGenerator(txg).
 				WithAccountRetriever(ar)
 
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithMarshaler(m)
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithMarshaler(m)
 
 			amount, err := sdk.ParseCoin(args[1])
 			if err != nil {
@@ -179,6 +185,10 @@ $ %s tx staking delegate cosmosvaloper1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm 10
 			}
 
 			msg := types.NewMsgDelegate(delAddr, valAddr, amount)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
 			return tx.GenerateOrBroadcastTx(cliCtx, txf, msg)
 		},
 	}
@@ -209,7 +219,7 @@ $ %s tx staking redelegate cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 
 				WithTxGenerator(txg).
 				WithAccountRetriever(ar)
 
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithMarshaler(m)
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithMarshaler(m)
 			delAddr := cliCtx.GetFromAddress()
 			valSrcAddr, err := sdk.ValAddressFromBech32(args[0])
 			if err != nil {
@@ -227,9 +237,14 @@ $ %s tx staking redelegate cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 
 			}
 
 			msg := types.NewMsgBeginRedelegate(delAddr, valSrcAddr, valDstAddr, amount)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
 			return tx.GenerateOrBroadcastTx(cliCtx, txf, msg)
 		},
 	}
+
 	return flags.PostCommands(cmd)[0]
 }
 
@@ -253,7 +268,7 @@ $ %s tx staking unbond cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 100s
 				WithTxGenerator(txg).
 				WithAccountRetriever(ar)
 
-			cliCtx := context.NewCLIContextWithInputAndFrom(inBuf, args[0]).WithMarshaler(m)
+			cliCtx := context.NewCLIContextWithInput(inBuf).WithMarshaler(m)
 
 			delAddr := cliCtx.GetFromAddress()
 			valAddr, err := sdk.ValAddressFromBech32(args[0])
@@ -267,15 +282,19 @@ $ %s tx staking unbond cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 100s
 			}
 
 			msg := types.NewMsgUndelegate(delAddr, valAddr, amount)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
 			return tx.GenerateOrBroadcastTx(cliCtx, txf, msg)
 		},
 	}
+
 	return flags.PostCommands(cmd)[0]
 }
 
 func NewBuildCreateValidatorMsg(cliCtx context.CLIContext, txf tx.Factory) (tx.Factory, sdk.Msg, error) {
-	amounstStr := viper.GetString(FlagAmount)
-	amount, err := sdk.ParseCoin(amounstStr)
+	amount, err := sdk.ParseCoin(viper.GetString(FlagAmount))
 	if err != nil {
 		return txf, nil, err
 	}
@@ -300,6 +319,7 @@ func NewBuildCreateValidatorMsg(cliCtx context.CLIContext, txf tx.Factory) (tx.F
 	rateStr := viper.GetString(FlagCommissionRate)
 	maxRateStr := viper.GetString(FlagCommissionMaxRate)
 	maxChangeRateStr := viper.GetString(FlagCommissionMaxChangeRate)
+
 	commissionRates, err := buildCommissionRates(rateStr, maxRateStr, maxChangeRateStr)
 	if err != nil {
 		return txf, nil, err
@@ -307,6 +327,7 @@ func NewBuildCreateValidatorMsg(cliCtx context.CLIContext, txf tx.Factory) (tx.F
 
 	// get the initial validator min self delegation
 	msbStr := viper.GetString(FlagMinSelfDelegation)
+
 	minSelfDelegation, ok := sdk.NewIntFromString(msbStr)
 	if !ok {
 		return txf, nil, types.ErrMinSelfDelegationInvalid
@@ -315,10 +336,14 @@ func NewBuildCreateValidatorMsg(cliCtx context.CLIContext, txf tx.Factory) (tx.F
 	msg := types.NewMsgCreateValidator(
 		sdk.ValAddress(valAddr), pk, amount, description, commissionRates, minSelfDelegation,
 	)
+	if err := msg.ValidateBasic(); err != nil {
+		return txf, nil, err
+	}
 
 	if viper.GetBool(flags.FlagGenerateOnly) {
 		ip := viper.GetString(FlagIP)
 		nodeID := viper.GetString(FlagNodeID)
+
 		if nodeID != "" && ip != "" {
 			txf = txf.WithMemo(fmt.Sprintf("%s@%s:26656", nodeID, ip))
 		}
@@ -330,7 +355,6 @@ func NewBuildCreateValidatorMsg(cliCtx context.CLIContext, txf tx.Factory) (tx.F
 // Return the flagset, particular flags, and a description of defaults
 // this is anticipated to be used with the gen-tx
 func CreateValidatorMsgHelpers(ipDefault string) (fs *flag.FlagSet, nodeIDFlag, pubkeyFlag, amountFlag, defaultsDesc string) {
-
 	fsCreateValidator := flag.NewFlagSet("", flag.ContinueOnError)
 	fsCreateValidator.String(FlagIP, ipDefault, "The node's public IP")
 	fsCreateValidator.String(FlagNodeID, "", "The node's NodeID")
@@ -360,10 +384,9 @@ func CreateValidatorMsgHelpers(ipDefault string) (fs *flag.FlagSet, nodeIDFlag, 
 func PrepareFlagsForTxCreateValidator(
 	config *cfg.Config, nodeID, chainID string, valPubKey crypto.PubKey,
 ) {
-
 	ip := viper.GetString(FlagIP)
 	if ip == "" {
-		fmt.Fprintf(os.Stderr, "couldn't retrieve an external IP; "+
+		_, _ = fmt.Fprintf(os.Stderr, "couldn't retrieve an external IP; "+
 			"the tx's memo field will be unset")
 	}
 
@@ -376,6 +399,7 @@ func PrepareFlagsForTxCreateValidator(
 	viper.Set(flags.FlagFrom, viper.GetString(flags.FlagName))
 	viper.Set(FlagNodeID, nodeID)
 	viper.Set(FlagIP, ip)
+	viper.Set(flags.FlagTrustNode, true)
 	viper.Set(FlagPubKey, sdk.MustBech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, valPubKey))
 	viper.Set(FlagMoniker, config.Moniker)
 	viper.Set(FlagWebsite, website)
@@ -386,18 +410,23 @@ func PrepareFlagsForTxCreateValidator(
 	if config.Moniker == "" {
 		viper.Set(FlagMoniker, viper.GetString(flags.FlagName))
 	}
+
 	if viper.GetString(FlagAmount) == "" {
 		viper.Set(FlagAmount, defaultAmount)
 	}
+
 	if viper.GetString(FlagCommissionRate) == "" {
 		viper.Set(FlagCommissionRate, defaultCommissionRate)
 	}
+
 	if viper.GetString(FlagCommissionMaxRate) == "" {
 		viper.Set(FlagCommissionMaxRate, defaultCommissionMaxRate)
 	}
+
 	if viper.GetString(FlagCommissionMaxChangeRate) == "" {
 		viper.Set(FlagCommissionMaxChangeRate, defaultCommissionMaxChangeRate)
 	}
+
 	if viper.GetString(FlagMinSelfDelegation) == "" {
 		viper.Set(FlagMinSelfDelegation, defaultMinSelfDelegation)
 	}
@@ -462,10 +491,10 @@ func GetCmdCreateValidator(cdc *codec.Codec) *cobra.Command {
 	cmd.Flags().String(FlagIP, "", fmt.Sprintf("The node's public IP. It takes effect only when used in combination with --%s", flags.FlagGenerateOnly))
 	cmd.Flags().String(FlagNodeID, "", "The node's ID")
 
-	cmd.MarkFlagRequired(flags.FlagFrom)
-	cmd.MarkFlagRequired(FlagAmount)
-	cmd.MarkFlagRequired(FlagPubKey)
-	cmd.MarkFlagRequired(FlagMoniker)
+	_ = cmd.MarkFlagRequired(flags.FlagFrom)
+	_ = cmd.MarkFlagRequired(FlagAmount)
+	_ = cmd.MarkFlagRequired(FlagPubKey)
+	_ = cmd.MarkFlagRequired(FlagMoniker)
 
 	return cmd
 }
@@ -648,6 +677,7 @@ $ %s tx staking unbond cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 100s
 func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (auth.TxBuilder, sdk.Msg, error) {
 	amounstStr := viper.GetString(FlagAmount)
 	amount, err := sdk.ParseCoin(amounstStr)
+
 	if err != nil {
 		return txBldr, nil, err
 	}
@@ -673,6 +703,7 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	maxRateStr := viper.GetString(FlagCommissionMaxRate)
 	maxChangeRateStr := viper.GetString(FlagCommissionMaxChangeRate)
 	commissionRates, err := buildCommissionRates(rateStr, maxRateStr, maxChangeRateStr)
+
 	if err != nil {
 		return txBldr, nil, err
 	}
@@ -680,6 +711,7 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	// get the initial validator min self delegation
 	msbStr := viper.GetString(FlagMinSelfDelegation)
 	minSelfDelegation, ok := sdk.NewIntFromString(msbStr)
+
 	if !ok {
 		return txBldr, nil, types.ErrMinSelfDelegationInvalid
 	}
@@ -691,6 +723,7 @@ func BuildCreateValidatorMsg(cliCtx context.CLIContext, txBldr auth.TxBuilder) (
 	if viper.GetBool(flags.FlagGenerateOnly) {
 		ip := viper.GetString(FlagIP)
 		nodeID := viper.GetString(FlagNodeID)
+
 		if nodeID != "" && ip != "" {
 			txBldr = txBldr.WithMemo(fmt.Sprintf("%s@%s:26656", nodeID, ip))
 		}

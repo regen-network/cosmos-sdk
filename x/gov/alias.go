@@ -1,7 +1,5 @@
 package gov
 
-// nolint
-
 import (
 	"github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -82,8 +80,8 @@ var (
 	SplitInactiveProposalQueueKey = types.SplitInactiveProposalQueueKey
 	SplitKeyDeposit               = types.SplitKeyDeposit
 	SplitKeyVote                  = types.SplitKeyVote
-	NewMsgSubmitProposalBase      = types.NewMsgSubmitProposalBase
 	NewMsgSubmitProposal          = types.NewMsgSubmitProposal
+	NewMsgSubmitProposalBase      = types.NewMsgSubmitProposalBase
 	NewMsgDeposit                 = types.NewMsgDeposit
 	NewMsgVote                    = types.NewMsgVote
 	ParamKeyTable                 = types.ParamKeyTable
