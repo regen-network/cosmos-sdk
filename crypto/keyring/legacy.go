@@ -2,6 +2,7 @@ package keyring
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -33,7 +34,8 @@ func NewLegacy(name, dir string, opts ...KeybaseOption) (LegacyKeybase, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newDBKeybase(db, opts...), nil
+
+	return newDBKeybase(db), nil
 }
 
 var _ LegacyKeybase = dbKeybase{}
@@ -48,7 +50,7 @@ type dbKeybase struct {
 
 // newDBKeybase creates a new dbKeybase instance using the provided DB for
 // reading and writing keys.
-func newDBKeybase(db dbm.DB, opts ...KeybaseOption) dbKeybase {
+func newDBKeybase(db dbm.DB) dbKeybase {
 	return dbKeybase{
 		db: db,
 	}
@@ -179,10 +181,55 @@ func (kb dbKeybase) ExportPrivKey(name string, decryptPassphrase string,
 }
 
 // Close the underlying storage.
-func (kb dbKeybase) Close() error {
-	return kb.db.Close()
+func (kb dbKeybase) Close() error { return kb.db.Close() }
+
+func infoKey(name string) []byte { return []byte(fmt.Sprintf("%s.%s", name, infoSuffix)) }
+
+// InfoImporter is implemented by those types that want to provide functions necessary
+// to migrate keys from LegacyKeybase types to Keyring types.
+type InfoImporter interface {
+	// Import imports ASCII-armored private keys.
+	Import(uid string, armor string) error
 }
 
-func infoKey(name string) []byte {
-	return []byte(fmt.Sprintf("%s.%s", name, infoSuffix))
+type keyringMigrator struct {
+	kr keystore
+}
+
+func NewInfoImporter(
+	appName, backend, rootDir string, userInput io.Reader, opts ...Option,
+) (InfoImporter, error) {
+	keyring, err := New(appName, backend, rootDir, userInput, opts...)
+	if err != nil {
+		return keyringMigrator{}, err
+	}
+
+	kr := keyring.(keystore)
+
+	return keyringMigrator{kr}, nil
+}
+
+func (m keyringMigrator) Import(uid string, armor string) error {
+	_, err := m.kr.Key(uid)
+	if err == nil {
+		return fmt.Errorf("cannot overwrite key %q", uid)
+	}
+
+	infoBytes, err := crypto.UnarmorInfoBytes(armor)
+	if err != nil {
+		return err
+	}
+
+	info, err := unmarshalInfo(infoBytes)
+	if err != nil {
+		return err
+	}
+
+	return m.kr.writeInfo(info)
+}
+
+// KeybaseOption overrides options for the db.
+type KeybaseOption func(*kbOptions)
+
+type kbOptions struct {
 }

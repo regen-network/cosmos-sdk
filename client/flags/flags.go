@@ -13,7 +13,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 )
 
-// nolint
 const (
 	// DefaultGasAdjustment is applied to gas estimates to avoid tx execution
 	// failures due to state changes that might occur between the tx simulation
@@ -63,6 +62,7 @@ const (
 	FlagMaxOpenConnections = "max-open"
 	FlagRPCReadTimeout     = "read-timeout"
 	FlagRPCWriteTimeout    = "write-timeout"
+	FlagRPCMaxBodyBytes    = "max-body-bytes"
 	FlagOutputDocument     = "output-document" // inspired by wget -O
 	FlagSkipConfirmation   = "yes"
 	FlagProve              = "prove"
@@ -87,14 +87,17 @@ func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Bool(FlagUseLedger, false, "Use a connected Ledger device")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to Tendermint RPC interface for this chain")
 		c.Flags().Int64(FlagHeight, 0, "Use a specific height to query state at (this can error if the node is pruning state)")
+		c.Flags().String(FlagKeyringBackend, DefaultKeyringBackend, "Select keyring's backend (os|file|kwallet|pass|test)")
 
 		viper.BindPFlag(FlagTrustNode, c.Flags().Lookup(FlagTrustNode))
 		viper.BindPFlag(FlagUseLedger, c.Flags().Lookup(FlagUseLedger))
 		viper.BindPFlag(FlagNode, c.Flags().Lookup(FlagNode))
+		viper.BindPFlag(FlagKeyringBackend, c.Flags().Lookup(FlagKeyringBackend))
 
 		c.MarkFlagRequired(FlagChainID)
 
 		c.SetErr(c.ErrOrStderr())
+		c.SetOut(c.OutOrStdout())
 	}
 	return cmds
 }
@@ -133,6 +136,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.MarkFlagRequired(FlagChainID)
 
 		c.SetErr(c.ErrOrStderr())
+		c.SetOut(c.OutOrStdout())
 	}
 	return cmds
 }
@@ -144,6 +148,7 @@ func RegisterRestServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Uint(FlagMaxOpenConnections, 1000, "The number of maximum open connections")
 	cmd.Flags().Uint(FlagRPCReadTimeout, 10, "The RPC read timeout (in seconds)")
 	cmd.Flags().Uint(FlagRPCWriteTimeout, 10, "The RPC write timeout (in seconds)")
+	cmd.Flags().Uint(FlagRPCMaxBodyBytes, 1000000, "The RPC max body bytes")
 	cmd.Flags().Bool(FlagUnsafeCORS, false, "Allows CORS requests from all domains. For development purposes only, use it at your own risk.")
 
 	return cmd
