@@ -8,16 +8,13 @@ import "third_party/proto/cosmos-proto/cosmos.proto";
 import "third_party/proto/gogoproto/gogo.proto";
 import "types/types.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
 
 message Authorization{
     option (gogoproto.equal)           = true;
     option (cosmos_proto.interface_type) = "*AuthorizationI";
 
-    // sum defines a set of all acceptable concrete authorization implementations.
-    oneof sum{
-        SendAuthorization send_authorization = 1;
-//        GenericAuthorization generic_authorization = 2;
-    }
+    google.protobuf.Any send_authorization = 1 [(cosmos_proto.accepts_interface) = "AuthorizationI"];
 }
 
 message SendAuthorization{
@@ -25,17 +22,23 @@ message SendAuthorization{
     option (gogoproto.goproto_getters)  = false;
 
     repeated cosmos_sdk.v1.Coin spend_limit = 1 [
-                                                (gogoproto.nullable)     = false,
-                                                (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Coins",
-                                                (gogoproto.moretags) = "yaml:\"spend_limit\""
-                                                ];
+        (gogoproto.nullable)     = false,
+        (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Coins",
+        (gogoproto.moretags) = "yaml:\"spend_limit\""
+    ];
 }
 
+// GenericAuthorization grants the permission to execute any transaction of the provided
+// sdk.Msg type without restrictions
 message GenericAuthorization{
     option (gogoproto.equal) = true;
     option (gogoproto.goproto_getters)  = false;
 
-
+    google.protobuf.Any message = 1 [
+        (gogoproto.nullable)     = false,
+        (gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.Msg",
+        (gogoproto.moretags) = "yaml:\"message\""
+    ];
 }
 
 // MsgGrantAuthorization grants the provided authorization to the grantee on the granter's
@@ -46,9 +49,15 @@ message MsgGrantAuthorization{
     bytes granter = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
     bytes grantee = 2 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
 
-    Authorization authorization = 3;
-    google.protobuf.Timestamp expiration = 4 [(gogoproto.stdtime)  = true,
-                                             (gogoproto.nullable) = false];
+    // Authorization authorization = 3;
+    google.protobuf.Any authorization = 3 [
+        (gogoproto.nullable) = false,
+        (cosmos_proto.accepts_interface) = "AuthorizationI"
+    ];
+    google.protobuf.Timestamp expiration = 4 [
+        (gogoproto.stdtime)  = true,
+        (gogoproto.nullable) = false
+    ];
 }
 
 // MsgRevokeAuthorization revokes any authorization with the provided sdk.Msg type on the
@@ -62,6 +71,23 @@ message MsgRevokeAuthorization{
 }
 
 message AuthorizationGrant{
-    Authorization authorization = 1 [(gogoproto.nullable) = false];
+    google.protobuf.Any authorization = 1 [
+        (gogoproto.nullable) = false,
+        (cosmos_proto.accepts_interface) = "AuthorizationI"
+    ];
     int64 expiration = 2;
+}
+
+// MsgExecAuthorized attempts to execute the provided messages using
+// authorizations granted to the grantee. Each message should have only
+// one signer corresponding to the granter of the authorization.
+message MsgExecAuthorized {
+    option (gogoproto.goproto_getters) = false;
+
+    bytes grantee = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
+    repeated google.protobuf.Any msgs = 2 [
+        (gogoproto.nullable)     = false,
+        (gogoproto.castrepeated) = "github.com/cosmos/cosmos-sdk/types.Msg",
+        (gogoproto.moretags) = "yaml:\"msgs\""
+    ];
 }

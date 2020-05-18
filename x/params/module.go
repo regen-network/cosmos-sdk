@@ -10,6 +10,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -51,6 +52,11 @@ func (AppModuleBasic) GetTxCmd(_ *codec.Codec) *cobra.Command { return nil }
 
 // GetQueryCmd returns no root query command for the params module.
 func (AppModuleBasic) GetQueryCmd(_ *codec.Codec) *cobra.Command { return nil }
+
+// RegisterInterfaceTypes registers interfaces and implementations of the bank module.
+func (AppModuleBasic) RegisterInterfaceTypes(registry codectypes.InterfaceRegistry) {
+	sdk.RegisterInterfaces(registry)
+}
 
 //____________________________________________________________________________
 

@@ -1,33 +1,41 @@
 package keeper
 
 import (
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
-	codecstd "github.com/cosmos/cosmos-sdk/codec/std"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	sdkstd "github.com/cosmos/cosmos-sdk/std"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	"github.com/cosmos/cosmos-sdk/x/msg_authorization/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	"github.com/cosmos/cosmos-sdk/x/staking"
-	"github.com/cosmos/cosmos-sdk/x/supply"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
-	"time"
+)
+
+const (
+	holder     = "holder"
+	multiPerm  = "multiple permissions account"
+	randomPerm = "random permission"
 )
 
 func makeTestCodec() codec.Marshaler {
 	var (
 		amino = codec.New()
 
-		ModuleCdc = codec.NewHybridCodec(amino)
+		ModuleCdc = codec.NewHybridCodec(amino, codectypes.NewInterfaceRegistry())
 	)
 	auth.RegisterCodec(amino)
 	types.RegisterCodec(amino)
-	supply.RegisterCodec(amino)
 	staking.RegisterCodec(amino)
 	sdk.RegisterCodec(amino)
 	codec.RegisterCrypto(amino)
@@ -49,6 +57,13 @@ func SetupTestInput() (sdk.Context, auth.AccountKeeper, params.Keeper, bank.Base
 	keyAuthorization := sdk.NewKVStoreKey(types.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 
+	maccPerms := simapp.GetMaccPerms()
+	maccPerms[holder] = nil
+	maccPerms[authtypes.Burner] = []string{authtypes.Burner}
+	maccPerms[auth.Minter] = []string{authtypes.Minter}
+	maccPerms[multiPerm] = []string{authtypes.Burner, authtypes.Minter, authtypes.Staking}
+	maccPerms[randomPerm] = []string{"random"}
+
 	ms := store.NewCommitMultiStore(db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
@@ -64,7 +79,8 @@ func SetupTestInput() (sdk.Context, auth.AccountKeeper, params.Keeper, bank.Base
 	blacklistedAddrs := make(map[string]bool)
 
 	paramsKeeper := params.NewKeeper(ModuleCdc, keyParams, tkeyParams)
-	authKeeper := auth.NewAccountKeeper(codecstd.NewAppCodec(amino), keyAcc, paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
+	authKeeper := auth.NewAccountKeeper(sdkstd.NewAppCodec(amino, codectypes.NewInterfaceRegistry()),
+		keyAcc, paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount, maccPerms)
 	bankKeeper := bank.NewBaseKeeper(ModuleCdc, keyBank, authKeeper, paramsKeeper.Subspace(bank.DefaultParamspace), blacklistedAddrs)
 	bankKeeper.SetSendEnabled(ctx, true)
 
