@@ -26,8 +26,15 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 		&MsgExecAuthorized{},
 	)
 
+	// registry.RegisterImplementations(
+	// 	(*AuthorizationI)(nil),
+	// 	&SendAuthorization{},
+	// 	&AuthorizationGrant{},
+	// 	&GenericAuthorization{},
+	// )
+
 	registry.RegisterInterface(
-		"cosmos_sdk.msg_authorization.v1.msg_authorization",
+		"cosmos_sdk.msgauth.v1.msgauth",
 		(*AuthorizationI)(nil),
 		&Authorization{},
 		&SendAuthorization{},
@@ -39,7 +46,7 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 var (
 	amino = codec.New()
 
-	ModuleCdc = codec.NewHybridCodec(amino)
+	ModuleCdc = codec.NewHybridCodec(amino, types.NewInterfaceRegistry())
 )
 
 func init() {

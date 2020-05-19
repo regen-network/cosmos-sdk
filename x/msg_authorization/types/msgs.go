@@ -72,36 +72,36 @@ func (msg MsgRevokeAuthorization) ValidateBasic() error {
 	return nil
 }
 
-// MsgExecAuthorized attempts to execute the provided messages using
-// authorizations granted to the grantee. Each message should have only
-// one signer corresponding to the granter of the authorization.
-type MsgExecAuthorized struct {
-	Grantee sdk.AccAddress `json:"grantee"`
-	Msgs    []sdk.Msg      `json:"msgs"`
-}
+// // MsgExecAuthorized attempts to execute the provided messages using
+// // authorizations granted to the grantee. Each message should have only
+// // one signer corresponding to the granter of the authorization.
+// type MsgExecAuthorized struct {
+// 	Grantee sdk.AccAddress `json:"grantee"`
+// 	Msgs    []sdk.Msg      `json:"msgs"`
+// }
 
-func NewMsgExecAuthorized(grantee sdk.AccAddress, msg []sdk.Msg) MsgExecAuthorized {
-	return MsgExecAuthorized{
-		Grantee: grantee,
-		Msgs:    msg,
-	}
-}
+// func NewMsgExecAuthorized(grantee sdk.AccAddress, msg []sdk.Msg) MsgExecAuthorized {
+// 	return MsgExecAuthorized{
+// 		Grantee: grantee,
+// 		Msgs:    msg,
+// 	}
+// }
 
-func (msg MsgExecAuthorized) Route() string { return RouterKey }
-func (msg MsgExecAuthorized) Type() string  { return "exec_delegated" }
+// func (msg MsgExecAuthorized) Route() string { return RouterKey }
+// func (msg MsgExecAuthorized) Type() string  { return "exec_delegated" }
 
-func (msg MsgExecAuthorized) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Grantee}
-}
+// func (msg MsgExecAuthorized) GetSigners() []sdk.AccAddress {
+// 	return []sdk.AccAddress{msg.Grantee}
+// }
 
-func (msg MsgExecAuthorized) GetSignBytes() []byte {
-	bz := ModuleCdc.MustMarshalJSON(msg)
-	return sdk.MustSortJSON(bz)
-}
+// func (msg MsgExecAuthorized) GetSignBytes() []byte {
+// 	bz := ModuleCdc.MustMarshalJSON(msg)
+// 	return sdk.MustSortJSON(bz)
+// }
 
-func (msg MsgExecAuthorized) ValidateBasic() error {
-	if msg.Grantee.Empty() {
-		return sdkerrors.Wrap(ErrInvalidGranter, "missing grantee address")
-	}
-	return nil
-}
+// func (msg MsgExecAuthorized) ValidateBasic() error {
+// 	if msg.Grantee.Empty() {
+// 		return sdkerrors.Wrap(ErrInvalidGranter, "missing grantee address")
+// 	}
+// 	return nil
+// }
