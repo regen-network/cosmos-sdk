@@ -22,7 +22,7 @@ message Authorization{
 message SendAuthorization{
     option (gogoproto.equal) = true;
     option (gogoproto.goproto_getters)  = false;
-    option (cosmos_proto.implements_interface) = "*AuthorizationI";
+        option (cosmos_proto.implements_interface) = "*AuthorizationI";
 
     repeated cosmos_sdk.v1.Coin spend_limit = 1 [
         (gogoproto.nullable)     = false,
@@ -93,4 +93,4 @@ message MsgExecAuthorized {
         (gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.Msg",
         (gogoproto.moretags) = "yaml:\"msgs\""
     ];
-}``
+}
