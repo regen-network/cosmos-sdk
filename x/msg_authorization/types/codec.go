@@ -36,7 +36,6 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 	registry.RegisterInterface(
 		"cosmos_sdk.msgauth.v1.msgauth",
 		(*AuthorizationI)(nil),
-		&Authorization{},
 		&SendAuthorization{},
 		&AuthorizationGrant{},
 		&GenericAuthorization{},

@@ -46,7 +46,12 @@ func grantHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		msg := types.NewMsgGrantAuthorization(req.Granter, req.Grantee, req.Authorization, req.Expiration)
+		msg, err := types.NewMsgGrantAuthorization(req.Granter, req.Grantee, req.Authorization, req.Expiration)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		if err := msg.ValidateBasic(); err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
