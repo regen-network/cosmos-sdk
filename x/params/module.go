@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"math/rand"
 
+	"github.com/cosmos/cosmos-sdk/codec/types"
+
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -22,6 +23,7 @@ var (
 	_ module.AppModule           = AppModule{}
 	_ module.AppModuleBasic      = AppModuleBasic{}
 	_ module.AppModuleSimulation = AppModule{}
+	_ module.InterfaceModule     = AppModuleBasic{}
 )
 
 // AppModuleBasic defines the basic application module used by the params module.
@@ -53,9 +55,8 @@ func (AppModuleBasic) GetTxCmd(_ *codec.Codec) *cobra.Command { return nil }
 // GetQueryCmd returns no root query command for the params module.
 func (AppModuleBasic) GetQueryCmd(_ *codec.Codec) *cobra.Command { return nil }
 
-// RegisterInterfaceTypes registers interfaces and implementations of the bank module.
-func (AppModuleBasic) RegisterInterfaceTypes(registry codectypes.InterfaceRegistry) {
-	sdk.RegisterInterfaces(registry)
+func (am AppModuleBasic) RegisterInterfaceTypes(registry types.InterfaceRegistry) {
+	proposal.RegisterInterfaces(registry)
 }
 
 //____________________________________________________________________________
