@@ -55,6 +55,7 @@ func (AppModuleBasic) GetTxCmd(_ *codec.Codec) *cobra.Command { return nil }
 // GetQueryCmd returns no root query command for the params module.
 func (AppModuleBasic) GetQueryCmd(_ *codec.Codec) *cobra.Command { return nil }
 
+// RegisterInterfaceTypes registers interfaces and implementations for the params module.
 func (am AppModuleBasic) RegisterInterfaceTypes(registry types.InterfaceRegistry) {
 	proposal.RegisterInterfaces(registry)
 }

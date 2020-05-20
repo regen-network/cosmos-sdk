@@ -1,19 +1,25 @@
 package types
 
 import (
+	"fmt"
 	"time"
 
+	proto "github.com/gogo/protobuf/proto"
+
+	"github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
-func NewMsgGrantAuthorization(granter sdk.AccAddress, grantee sdk.AccAddress, authorization *Authorization, expiration time.Time) MsgGrantAuthorization {
-	return MsgGrantAuthorization{
-		Granter:       granter,
-		Grantee:       grantee,
-		Authorization: authorization,
-		Expiration:    expiration,
+func NewMsgGrantAuthorization(granter sdk.AccAddress, grantee sdk.AccAddress, authorization AuthorizationI, expiration time.Time) (*MsgGrantAuthorization, error) {
+	m := &MsgGrantAuthorization{
+		Granter:    granter,
+		Grantee:    grantee,
+		Expiration: expiration,
 	}
+
+	err := m.SetAuthorization(authorization)
+	return m, err
 }
 
 func (msg MsgGrantAuthorization) Route() string { return RouterKey }
@@ -39,6 +45,19 @@ func (msg MsgGrantAuthorization) ValidateBasic() error {
 		return sdkerrors.Wrap(ErrInvalidGranter, "Time can't be in the past")
 	}
 
+	return nil
+}
+
+func (m *MsgGrantAuthorization) SetAuthorization(authorization AuthorizationI) error {
+	msg, ok := authorization.(proto.Message)
+	if !ok {
+		return fmt.Errorf("can't proto marshal %T", msg)
+	}
+	any, err := types.NewAnyWithValue(msg)
+	if err != nil {
+		return err
+	}
+	m.Authorization = any
 	return nil
 }
 
@@ -72,36 +91,55 @@ func (msg MsgRevokeAuthorization) ValidateBasic() error {
 	return nil
 }
 
-// // MsgExecAuthorized attempts to execute the provided messages using
-// // authorizations granted to the grantee. Each message should have only
-// // one signer corresponding to the granter of the authorization.
+// MsgExecAuthorized attempts to execute the provided messages using
+// authorizations granted to the grantee. Each message should have only
+// one signer corresponding to the granter of the authorization.
 // type MsgExecAuthorized struct {
 // 	Grantee sdk.AccAddress `json:"grantee"`
 // 	Msgs    []sdk.Msg      `json:"msgs"`
 // }
 
-// func NewMsgExecAuthorized(grantee sdk.AccAddress, msg []sdk.Msg) MsgExecAuthorized {
-// 	return MsgExecAuthorized{
-// 		Grantee: grantee,
-// 		Msgs:    msg,
-// 	}
-// }
+func NewMsgExecAuthorized(grantee sdk.AccAddress, msgs []sdk.Msg) (*MsgExecAuthorized, error) {
+	m := &MsgExecAuthorized{
+		Grantee: grantee,
+	}
 
-// func (msg MsgExecAuthorized) Route() string { return RouterKey }
-// func (msg MsgExecAuthorized) Type() string  { return "exec_delegated" }
+	err := m.SetMsgs(msgs)
 
-// func (msg MsgExecAuthorized) GetSigners() []sdk.AccAddress {
-// 	return []sdk.AccAddress{msg.Grantee}
-// }
+	return m, err
+}
 
-// func (msg MsgExecAuthorized) GetSignBytes() []byte {
-// 	bz := ModuleCdc.MustMarshalJSON(msg)
-// 	return sdk.MustSortJSON(bz)
-// }
+func (msg MsgExecAuthorized) Route() string { return RouterKey }
+func (msg MsgExecAuthorized) Type() string  { return "exec_delegated" }
 
-// func (msg MsgExecAuthorized) ValidateBasic() error {
-// 	if msg.Grantee.Empty() {
-// 		return sdkerrors.Wrap(ErrInvalidGranter, "missing grantee address")
-// 	}
-// 	return nil
-// }
+func (msg MsgExecAuthorized) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Grantee}
+}
+
+func (msg MsgExecAuthorized) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+func (msg MsgExecAuthorized) ValidateBasic() error {
+	if msg.Grantee.Empty() {
+		return sdkerrors.Wrap(ErrInvalidGranter, "missing grantee address")
+	}
+	return nil
+}
+
+func (m *MsgExecAuthorized) SetMsgs(msgs []sdk.Msg) error {
+	for _, msg := range msgs {
+		msg1, ok := msg.(proto.Message)
+		if !ok {
+			return fmt.Errorf("can't proto marshal %T", msg1)
+		}
+		any, err := types.NewAnyWithValue(msg1)
+		if err != nil {
+			return err
+		}
+		m.Msgs = append(m.Msgs, any)
+	}
+
+	return nil
+}

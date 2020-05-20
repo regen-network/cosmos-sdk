@@ -26,7 +26,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		Long:                       "Authorize and revoke access to execute transactions on behalf of your address",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
-		RunE:                       client.ValidateCmd,
+		RunE: client.ValidateCmd,
 	}
 
 	AuthorizationTxCmd.AddCommand(flags.PostCommands(
@@ -71,7 +71,11 @@ func GetCmdGrantAuthorization(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgGrantAuthorization(granter, grantee, authorization, expiration)
+			msg, err := types.NewMsgGrantAuthorization(granter, grantee, authorization, expiration)
+			if err != nil {
+				return err
+			}
+
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
@@ -139,7 +143,10 @@ func GetCmdSendAs(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgExecAuthorized(grantee, stdTx.Msgs)
+			msg, err := types.NewMsgExecAuthorized(grantee, stdTx.Msgs)
+			if err != nil {
+				return err
+			}
 
 			if err := msg.ValidateBasic(); err != nil {
 				return err
