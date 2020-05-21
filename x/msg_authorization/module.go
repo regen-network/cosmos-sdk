@@ -93,7 +93,7 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 }
 
 // DefaultGenesis is an empty object
-func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+func (AppModuleBasic) DefaultGenesis(cdc codec.JSONMarshaler) json.RawMessage {
 	return []byte("{}")
 }
 
@@ -104,7 +104,7 @@ func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
 
 // ExportGenesis is always empty, as InitGenesis does nothing either
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	return am.DefaultGenesis()
+	return am.DefaultGenesis(codec.Cdc)
 }
 
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {

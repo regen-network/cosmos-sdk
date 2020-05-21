@@ -49,7 +49,7 @@ func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 		return
 	}
 
-	authorization, err := k.convertToAny(updated)
+	authorization, err := k.ConvertToAny(updated)
 	if err != nil {
 		return
 	}
@@ -59,7 +59,8 @@ func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 	store.Set(actor, k.cdc.MustMarshalBinaryBare(&grant))
 }
 
-func (k Keeper) convertToAny(authorization types.AuthorizationI) (*codectypes.Any, error) {
+// ConvertToAny Converts authorization interface to any
+func (k Keeper) ConvertToAny(authorization types.AuthorizationI) (*codectypes.Any, error) {
 	msg, ok := authorization.(proto.Message)
 	if !ok {
 		return nil, fmt.Errorf("can't proto marshal %T", msg)
@@ -118,7 +119,7 @@ func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []
 // overwrites that.
 func (k Keeper) Grant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, authorization types.AuthorizationI, expiration int64) {
 	store := ctx.KVStore(k.storeKey)
-	authorization1, err := k.convertToAny(authorization)
+	authorization1, err := k.ConvertToAny(authorization)
 
 	if err != nil {
 		return
@@ -149,10 +150,17 @@ func (k Keeper) GetAuthorization(ctx sdk.Context, grantee sdk.AccAddress, grante
 	if !found {
 		return nil, 0
 	}
+
 	if grant.Expiration != 0 && grant.Expiration < (ctx.BlockHeader().Time.Unix()) {
 		k.Revoke(ctx, grantee, granter, msgType)
 		return nil, 0
 	}
 
-	return grant.Authorization, grant.Expiration
+	var autorization types.AuthorizationI
+	err := k.cdc.UnpackAny(&grant.Authorization, &autorization)
+	if err != nil {
+		return nil, 0
+	}
+
+	return autorization, grant.Expiration
 }
