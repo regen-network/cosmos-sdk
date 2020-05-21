@@ -61,6 +61,16 @@ func (m *MsgGrantAuthorization) SetAuthorization(authorization AuthorizationI) e
 	return nil
 }
 
+func (m *MsgGrantAuthorization) GetAuthorization() AuthorizationI {
+	// var autorization AuthorizationI
+	autorization, ok := m.Authorization.GetCachedValue().(AuthorizationI)
+	// err := ModuleCdc.UnpackAny(m.Authorization, &autorization)
+	if !ok {
+		return nil
+	}
+	return autorization
+}
+
 func NewMsgRevokeAuthorization(granter sdk.AccAddress, grantee sdk.AccAddress, authorizationMsgType string) MsgRevokeAuthorization {
 	return MsgRevokeAuthorization{
 		Granter:              granter,
@@ -142,4 +152,20 @@ func (m *MsgExecAuthorized) SetMsgs(msgs []sdk.Msg) error {
 	}
 
 	return nil
+}
+
+// GetMsgs return unpacked interfaces from any
+func (m *MsgExecAuthorized) GetMsgs() ([]sdk.Msg, error) {
+	var msgs []sdk.Msg
+	for _, msgItem := range m.Msgs {
+		var msgInfo sdk.Msg
+		err := ModuleCdc.UnpackAny(msgItem, &msgInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		msgs = append(msgs, msgInfo)
+	}
+
+	return msgs, nil
 }

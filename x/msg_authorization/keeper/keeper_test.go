@@ -89,17 +89,20 @@ func (s *TestSuite) TestKeeperFees() {
 
 	msgs := types.MsgExecAuthorized{
 		Grantee: granteeAddr,
-		Msgs: []sdk.Msg{
-			bank.MsgSend{
-				Amount:      sdk.NewCoins(sdk.NewInt64Coin("steak", 2)),
-				FromAddress: granterAddr,
-				ToAddress:   recipientAddr,
-			},
-		},
 	}
 
+	msgs.SetMsgs([]sdk.Msg{
+		bank.MsgSend{
+			Amount:      sdk.NewCoins(sdk.NewInt64Coin("steak", 2)),
+			FromAddress: granterAddr,
+			ToAddress:   recipientAddr,
+		},
+	})
+
 	s.T().Log("verify dispatch fails with invalid authorization")
-	result, error := s.keeper.DispatchActions(s.ctx, granteeAddr, msgs.Msgs)
+	msgsInfo, err := msgs.GetMsgs()
+	s.Require().Nil(err)
+	result, error := s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
 	s.Require().Nil(result)
 	s.Require().NotNil(error)
 
@@ -111,7 +114,10 @@ func (s *TestSuite) TestKeeperFees() {
 	s.Require().NotNil(authorization)
 	s.Require().Zero(expiration)
 	s.Require().Equal(authorization.MsgType(), bank.MsgSend{}.Type())
-	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgs.Msgs)
+
+	msgsInfo, err = msgs.GetMsgs()
+	s.Require().Nil(err)
+	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
 	s.Require().NotNil(result)
 	s.Require().Nil(error)
 
@@ -123,16 +129,18 @@ func (s *TestSuite) TestKeeperFees() {
 
 	msgs = types.MsgExecAuthorized{
 		Grantee: granteeAddr,
-		Msgs: []sdk.Msg{
-			bank.MsgSend{
-				Amount:      someCoin,
-				FromAddress: granterAddr,
-				ToAddress:   recipientAddr,
-			},
-		},
 	}
+	msgs.SetMsgs([]sdk.Msg{
+		bank.MsgSend{
+			Amount:      someCoin,
+			FromAddress: granterAddr,
+			ToAddress:   recipientAddr,
+		},
+	})
 
-	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgs.Msgs)
+	msgsInfo, err = msgs.GetMsgs()
+	s.Require().Nil(err)
+	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
 	s.Require().Nil(result)
 	s.Require().NotNil(error)
 

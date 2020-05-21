@@ -23,12 +23,18 @@ func NewHandler(k Keeper) sdk.Handler {
 }
 
 func handleMsgGrantAuthorization(ctx sdk.Context, msg MsgGrantAuthorization, k Keeper) (*sdk.Result, error) {
-	k.Grant(ctx, msg.Grantee, msg.Granter, msg.Authorization, msg.Expiration)
+	var autorization types.AuthorizationI
+	err := ModuleCdc.UnpackAny(msg.Authorization, &autorization)
+	if err != nil {
+		return nil, err
+	}
+
+	k.Grant(ctx, msg.Grantee, msg.Granter, autorization, msg.Expiration.Unix())
 
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			types.EventGrantAuthorization,
-			sdk.NewAttribute(types.AttributeKeyGrantType, msg.Authorization.MsgType()),
+			sdk.NewAttribute(types.AttributeKeyGrantType, autorization.MsgType()),
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
 			sdk.NewAttribute(types.AttributeKeyGranterAddress, msg.Granter.String()),
 			sdk.NewAttribute(types.AttributeKeyGranteeAddress, msg.Grantee.String()),
@@ -58,5 +64,16 @@ func handleMsgRevokeAuthorization(ctx sdk.Context, msg MsgRevokeAuthorization, k
 }
 
 func handleMsgExecAuthorized(ctx sdk.Context, msg MsgExecAuthorized, k Keeper) (*sdk.Result, error) {
-	return k.DispatchActions(ctx, msg.Grantee, msg.Msgs)
+	var msgs []sdk.Msg
+	for _, msgItem := range msg.Msgs {
+		var msgInfo sdk.Msg
+		err := ModuleCdc.UnpackAny(msgItem, &msgInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		msgs = append(msgs, msgInfo)
+	}
+
+	return k.DispatchActions(ctx, msg.Grantee, msgs)
 }
