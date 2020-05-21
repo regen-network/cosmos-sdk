@@ -1,9 +1,10 @@
 package types
 
 import (
+	abci "github.com/tendermint/tendermint/abci/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 func (authorization SendAuthorization) MsgType() string {

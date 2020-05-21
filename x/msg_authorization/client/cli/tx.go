@@ -26,7 +26,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 		Long:                       "Authorize and revoke access to execute transactions on behalf of your address",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
-		RunE:                       client.ValidateCmd,
+		RunE: client.ValidateCmd,
 	}
 
 	AuthorizationTxCmd.AddCommand(flags.PostCommands(
