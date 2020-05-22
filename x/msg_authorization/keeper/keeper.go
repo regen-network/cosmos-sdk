@@ -123,6 +123,7 @@ func (k Keeper) Grant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAd
 	authorization1, err := k.ConvertToAny(authorization)
 
 	if err != nil {
+		fmt.Println("error converting to any")
 		return
 	}
 
@@ -158,7 +159,7 @@ func (k Keeper) GetAuthorization(ctx sdk.Context, grantee sdk.AccAddress, grante
 	}
 
 	var autorization types.AuthorizationI
-	err := k.cdc.UnpackAny(&grant.Authorization, &autorization)
+	err := types.ModuleCdc.UnpackAny(&grant.Authorization, &autorization)
 	if err != nil {
 		return nil, 0
 	}

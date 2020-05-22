@@ -102,9 +102,10 @@ func (s *TestSuite) TestKeeperFees() {
 	s.T().Log("verify dispatch fails with invalid authorization")
 	msgsInfo, err := msgs.GetMsgs()
 	s.Require().Nil(err)
-	result, error := s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
+	result, err := s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
+
 	s.Require().Nil(result)
-	s.Require().NotNil(error)
+	s.Require().NotNil(err)
 
 	s.T().Log("verify dispatch executes with correct information")
 	// grant authorization
@@ -117,9 +118,9 @@ func (s *TestSuite) TestKeeperFees() {
 
 	msgsInfo, err = msgs.GetMsgs()
 	s.Require().Nil(err)
-	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
+	result, err = s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
 	s.Require().NotNil(result)
-	s.Require().Nil(error)
+	s.Require().Nil(err)
 
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{}.Type())
 	s.Require().NotNil(authorization)
@@ -140,9 +141,9 @@ func (s *TestSuite) TestKeeperFees() {
 
 	msgsInfo, err = msgs.GetMsgs()
 	s.Require().Nil(err)
-	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
+	result, err = s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
 	s.Require().Nil(result)
-	s.Require().NotNil(error)
+	s.Require().NotNil(err)
 
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{}.Type())
 	s.Require().NotNil(authorization)

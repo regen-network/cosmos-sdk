@@ -73,7 +73,7 @@ func SetupTestInput() (sdk.Context, auth.AccountKeeper, params.Keeper, bank.Base
 
 	ms.LoadLatestVersion()
 
-	ctx := sdk.NewContext(ms, abci.Header{Time: time.Unix(0, 0)}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{Time: time.Now()}, false, log.NewNopLogger())
 	ModuleCdc := makeTestCodec()
 
 	blacklistedAddrs := make(map[string]bool)
