@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	amino "github.com/tendermint/go-amino"
+	"github.com/tendermint/go-amino"
 	cryptoamino "github.com/tendermint/tendermint/crypto/encoding/amino"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -189,7 +189,7 @@ func (cdc *Codec) MustUnmarshalJSON(bz []byte, ptr interface{}) {
 	}
 }
 
-func (*Codec) UnpackAny(*types.Any, interface{}) error {
+func (cdc *amino.Codec) UnpackAny(*types.Any, interface{}) error {
 	return fmt.Errorf("AminoCodec can't handle unpack protobuf Any's")
 }
 

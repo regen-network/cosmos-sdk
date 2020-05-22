@@ -142,7 +142,7 @@ func NewSimApp(
 	homePath string, invCheckPeriod uint, baseAppOptions ...func(*baseapp.BaseApp),
 ) *SimApp {
 
-	// TODO: Remove cdc in favor of appCodec once all modules are migrated.
+	// TODO: Remove cdc in favor of amino once all modules are migrated.
 	appCodec, cdc := MakeCodecs()
 
 	bApp := baseapp.NewBaseApp(appName, logger, db, auth.DefaultTxDecoder(cdc), baseAppOptions...)
@@ -161,7 +161,7 @@ func NewSimApp(
 	app := &SimApp{
 		BaseApp:        bApp,
 		cdc:            cdc,
-		appCodec:       appCodec,
+		appCodec:       amino,
 		invCheckPeriod: invCheckPeriod,
 		keys:           keys,
 		tkeys:          tkeys,
@@ -170,7 +170,7 @@ func NewSimApp(
 	}
 
 	// init params keeper and subspaces
-	app.ParamsKeeper = params.NewKeeper(appCodec, keys[params.StoreKey], tkeys[params.TStoreKey])
+	app.ParamsKeeper = params.NewKeeper(amino, keys[params.StoreKey], tkeys[params.TStoreKey])
 	app.subspaces[auth.ModuleName] = app.ParamsKeeper.Subspace(auth.DefaultParamspace)
 	app.subspaces[bank.ModuleName] = app.ParamsKeeper.Subspace(bank.DefaultParamspace)
 	app.subspaces[staking.ModuleName] = app.ParamsKeeper.Subspace(staking.DefaultParamspace)
@@ -184,35 +184,35 @@ func NewSimApp(
 	bApp.SetParamStore(app.ParamsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(std.ConsensusParamsKeyTable()))
 
 	// add capability keeper and ScopeToModule for ibc module
-	app.CapabilityKeeper = capability.NewKeeper(appCodec, keys[capability.StoreKey], memKeys[capability.MemStoreKey])
+	app.CapabilityKeeper = capability.NewKeeper(amino, keys[capability.StoreKey], memKeys[capability.MemStoreKey])
 	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(ibc.ModuleName)
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(transfer.ModuleName)
 
 	// add keepers
 	app.AccountKeeper = auth.NewAccountKeeper(
-		appCodec, keys[auth.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount, maccPerms,
+		amino, keys[auth.StoreKey], app.subspaces[auth.ModuleName], auth.ProtoBaseAccount, maccPerms,
 	)
 	app.BankKeeper = bank.NewBaseKeeper(
-		appCodec, keys[bank.StoreKey], app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
+		amino, keys[bank.StoreKey], app.AccountKeeper, app.subspaces[bank.ModuleName], app.BlacklistedAccAddrs(),
 	)
 	stakingKeeper := staking.NewKeeper(
-		appCodec, keys[staking.StoreKey], app.AccountKeeper, app.BankKeeper, app.subspaces[staking.ModuleName],
+		amino, keys[staking.StoreKey], app.AccountKeeper, app.BankKeeper, app.subspaces[staking.ModuleName],
 	)
 	app.MintKeeper = mint.NewKeeper(
-		appCodec, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
+		amino, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
 		app.AccountKeeper, app.BankKeeper, auth.FeeCollectorName,
 	)
 	app.DistrKeeper = distr.NewKeeper(
-		appCodec, keys[distr.StoreKey], app.subspaces[distr.ModuleName], app.AccountKeeper, app.BankKeeper,
+		amino, keys[distr.StoreKey], app.subspaces[distr.ModuleName], app.AccountKeeper, app.BankKeeper,
 		&stakingKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(),
 	)
 	app.SlashingKeeper = slashing.NewKeeper(
-		appCodec, keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
+		amino.Amino, keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
 	)
 	app.CrisisKeeper = crisis.NewKeeper(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.BankKeeper, auth.FeeCollectorName,
 	)
-	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], appCodec, homePath)
+	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], amino, homePath)
 
 	// register the proposal types
 	govRouter := gov.NewRouter()
@@ -221,7 +221,7 @@ func NewSimApp(
 		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
 		AddRoute(upgrade.RouterKey, upgrade.NewSoftwareUpgradeProposalHandler(app.UpgradeKeeper))
 	app.GovKeeper = gov.NewKeeper(
-		appCodec, keys[gov.StoreKey], app.subspaces[gov.ModuleName], app.AccountKeeper, app.BankKeeper,
+		amino, keys[gov.StoreKey], app.subspaces[gov.ModuleName], app.AccountKeeper, app.BankKeeper,
 		&stakingKeeper, govRouter,
 	)
 
@@ -235,12 +235,12 @@ func NewSimApp(
 	// TODO: remove amino codec dependency once Tendermint version is upgraded with
 	// protobuf changes
 	app.IBCKeeper = ibc.NewKeeper(
-		app.cdc, appCodec, keys[ibc.StoreKey], app.StakingKeeper, scopedIBCKeeper,
+		app.cdc, amino, keys[ibc.StoreKey], app.StakingKeeper, scopedIBCKeeper,
 	)
 
 	// Create Transfer Keepers
 	app.TransferKeeper = transfer.NewKeeper(
-		appCodec, keys[transfer.StoreKey],
+		amino, keys[transfer.StoreKey],
 		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
 		app.AccountKeeper, app.BankKeeper, scopedTransferKeeper,
 	)
@@ -253,7 +253,7 @@ func NewSimApp(
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
-		appCodec, keys[evidence.StoreKey], &app.StakingKeeper, app.SlashingKeeper,
+		amino, keys[evidence.StoreKey], &app.StakingKeeper, app.SlashingKeeper,
 	)
 	evidenceRouter := evidence.NewRouter().
 		AddRoute(ibcclient.RouterKey, ibcclient.HandlerClientMisbehaviour(app.IBCKeeper.ClientKeeper))
@@ -265,15 +265,15 @@ func NewSimApp(
 	// must be passed by reference here.
 	app.mm = module.NewManager(
 		genutil.NewAppModule(app.AccountKeeper, app.StakingKeeper, app.BaseApp.DeliverTx),
-		auth.NewAppModule(appCodec, app.AccountKeeper),
-		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
-		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
+		auth.NewAppModule(amino, app.AccountKeeper),
+		bank.NewAppModule(amino, app.BankKeeper, app.AccountKeeper),
+		capability.NewAppModule(amino, *app.CapabilityKeeper),
 		crisis.NewAppModule(&app.CrisisKeeper),
-		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
-		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
-		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
+		gov.NewAppModule(amino, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
+		mint.NewAppModule(amino, app.MintKeeper, app.AccountKeeper),
+		slashing.NewAppModule(amino, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+		distr.NewAppModule(amino, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+		staking.NewAppModule(amino, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
 		upgrade.NewAppModule(app.UpgradeKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
 		ibc.NewAppModule(app.IBCKeeper),
@@ -310,14 +310,14 @@ func NewSimApp(
 	// NOTE: this is not required apps that don't use the simulator for fuzz testing
 	// transactions
 	app.sm = module.NewSimulationManager(
-		auth.NewAppModule(appCodec, app.AccountKeeper),
-		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
-		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
-		gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
-		mint.NewAppModule(appCodec, app.MintKeeper, app.AccountKeeper),
-		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
-		distr.NewAppModule(appCodec, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
-		slashing.NewAppModule(appCodec, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+		auth.NewAppModule(amino, app.AccountKeeper),
+		bank.NewAppModule(amino, app.BankKeeper, app.AccountKeeper),
+		capability.NewAppModule(amino, *app.CapabilityKeeper),
+		gov.NewAppModule(amino, app.GovKeeper, app.AccountKeeper, app.BankKeeper),
+		mint.NewAppModule(amino, app.MintKeeper, app.AccountKeeper),
+		staking.NewAppModule(amino, app.StakingKeeper, app.AccountKeeper, app.BankKeeper),
+		distr.NewAppModule(amino, app.DistrKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
+		slashing.NewAppModule(amino, app.SlashingKeeper, app.AccountKeeper, app.BankKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
 		ibc.NewAppModule(app.IBCKeeper),
