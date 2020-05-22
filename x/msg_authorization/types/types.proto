@@ -67,7 +67,6 @@ message MsgRevokeAuthorization{
 
 message AuthorizationGrant{
     google.protobuf.Any authorization = 1 [
-        (gogoproto.nullable) = false,
         (cosmos_proto.accepts_interface) = "AuthorizationI"
     ];
     int64 expiration = 2;
