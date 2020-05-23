@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	proto "github.com/gogo/protobuf/proto"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -20,7 +18,7 @@ type Keeper struct {
 	router   baseapp.Router
 }
 
-// NewKeeper constructs a message authorisation Keeper
+// NewKeeper constructs a message authorization Keeper
 func NewKeeper(storeKey sdk.StoreKey, cdc codec.Marshaler, router baseapp.Router) Keeper {
 	return Keeper{
 		storeKey: storeKey,
@@ -43,36 +41,22 @@ func (k Keeper) getAuthorizationGrant(ctx sdk.Context, actor []byte) (grant type
 	return grant, true
 }
 
-func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated types.AuthorizationI) {
-	actor := k.getActorAuthorizationKey(grantee, granter, updated.MsgType())
+func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated *codectypes.Any) {
+	var authorization types.AuthorizationI
+	err := k.cdc.UnpackAny(updated, &authorization)
+	if err != nil {
+		return
+	}
+
+	actor := k.getActorAuthorizationKey(grantee, granter, authorization.MsgType())
 	grant, found := k.getAuthorizationGrant(ctx, actor)
 	if !found {
 		return
 	}
 
-	authorization, err := k.ConvertToAny(updated)
-	if err != nil {
-		return
-	}
-
-	grant.Authorization = *authorization
+	grant.Authorization = updated
 	store := ctx.KVStore(k.storeKey)
 	store.Set(actor, k.cdc.MustMarshalBinaryBare(&grant))
-}
-
-// ConvertToAny Converts authorization interface to any
-func (k Keeper) ConvertToAny(authorization types.AuthorizationI) (*codectypes.Any, error) {
-	msg, ok := authorization.(proto.Message)
-	if !ok {
-		return nil, fmt.Errorf("can't proto marshal %T", msg)
-	}
-
-	any, err := codectypes.NewAnyWithValue(msg)
-	if err != nil {
-		return nil, err
-	}
-
-	return any, nil
 }
 
 // DispatchActions attempts to execute the provided messages via authorization
@@ -118,17 +102,17 @@ func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []
 // Grant method grants the provided authorization to the grantee on the granter's account with the provided expiration
 // time. If there is an existing authorization grant for the same `sdk.Msg` type, this grant
 // overwrites that.
-func (k Keeper) Grant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, authorization types.AuthorizationI, expiration int64) {
+func (k Keeper) Grant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, authorization *codectypes.Any, expiration int64) {
 	store := ctx.KVStore(k.storeKey)
-	authorization1, err := k.ConvertToAny(authorization)
 
+	var authorization1 types.AuthorizationI
+	err := k.cdc.UnpackAny(authorization, &authorization1)
 	if err != nil {
-		fmt.Println("error converting to any")
 		return
 	}
 
-	bz := k.cdc.MustMarshalBinaryBare(&types.AuthorizationGrant{Authorization: *authorization1, Expiration: expiration})
-	actor := k.getActorAuthorizationKey(grantee, granter, authorization.MsgType())
+	bz := k.cdc.MustMarshalBinaryBare(&types.AuthorizationGrant{Authorization: authorization, Expiration: expiration})
+	actor := k.getActorAuthorizationKey(grantee, granter, authorization1.MsgType())
 	store.Set(actor, bz)
 }
 
@@ -158,11 +142,16 @@ func (k Keeper) GetAuthorization(ctx sdk.Context, grantee sdk.AccAddress, grante
 		return nil, 0
 	}
 
-	var autorization types.AuthorizationI
-	err := types.ModuleCdc.UnpackAny(&grant.Authorization, &autorization)
+	var authorization types.AuthorizationI
+	err := k.cdc.UnpackAny(grant.Authorization, &authorization)
+	fmt.Println("err:", err)
 	if err != nil {
 		return nil, 0
 	}
 
-	return autorization, grant.Expiration
+	return authorization, grant.Expiration
 }
+
+// func (k Keeper) GetCodec() codec.Marshaler {
+// 	return k.cdc
+// }
