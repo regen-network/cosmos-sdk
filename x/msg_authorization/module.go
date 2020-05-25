@@ -2,6 +2,8 @@ package msg_authorization
 
 import (
 	"encoding/json"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/x/msg_authorization/types"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -23,8 +25,9 @@ func init() {
 }
 
 var (
-	_ module.AppModule      = AppModule{}
-	_ module.AppModuleBasic = AppModuleBasic{}
+	_ module.AppModule       = AppModule{}
+	_ module.AppModuleBasic  = AppModuleBasic{}
+	_ module.InterfaceModule = AppModuleBasic{}
 )
 
 type AppModuleBasic struct{}
@@ -51,8 +54,13 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 
 // GetTxCmd returns the transaction commands for this module
 func (AppModuleBasic) GetTxCmd(cdc context.CLIContext) *cobra.Command {
-	// Integrate cli commands
+	// TODO: Integrate cli commands
 	return nil
+}
+
+// RegisterInterfaceTypes implements InterfaceModule.RegisterInterfaceTypes
+func (a AppModuleBasic) RegisterInterfaceTypes(registry codectypes.InterfaceRegistry) {
+	types.RegisterInterfaces(registry)
 }
 
 // AppModule implements the sdk.AppModule interface

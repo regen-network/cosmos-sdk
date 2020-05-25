@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,11 +14,11 @@ import (
 type Keeper struct {
 	storeKey sdk.StoreKey
 	cdc      codec.Marshaler
-	router   baseapp.Router
+	router   sdk.Router
 }
 
 // NewKeeper constructs a message authorization Keeper
-func NewKeeper(storeKey sdk.StoreKey, cdc codec.Marshaler, router baseapp.Router) Keeper {
+func NewKeeper(storeKey sdk.StoreKey, cdc codec.Marshaler, router sdk.Router) Keeper {
 	return Keeper{
 		storeKey: storeKey,
 		cdc:      cdc,
@@ -151,7 +150,3 @@ func (k Keeper) GetAuthorization(ctx sdk.Context, grantee sdk.AccAddress, grante
 
 	return authorization, grant.Expiration
 }
-
-// func (k Keeper) GetCodec() codec.Marshaler {
-// 	return k.cdc
-// }

@@ -31,6 +31,7 @@ import (
 	ibcclient "github.com/cosmos/cosmos-sdk/x/ibc/02-client"
 	port "github.com/cosmos/cosmos-sdk/x/ibc/05-port"
 	"github.com/cosmos/cosmos-sdk/x/mint"
+	"github.com/cosmos/cosmos-sdk/x/msg_authorization"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
 	paramproposal "github.com/cosmos/cosmos-sdk/x/params/types/proposal"
@@ -59,6 +60,7 @@ var (
 		capability.AppModuleBasic{},
 		staking.AppModuleBasic{},
 		mint.AppModuleBasic{},
+		msg_authorization.AppModuleBasic{},
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler, distr.ProposalHandler, upgradeclient.ProposalHandler,
@@ -110,20 +112,21 @@ type SimApp struct {
 	subspaces map[string]params.Subspace
 
 	// keepers
-	AccountKeeper    auth.AccountKeeper
-	BankKeeper       bank.Keeper
-	CapabilityKeeper *capability.Keeper
-	StakingKeeper    staking.Keeper
-	SlashingKeeper   slashing.Keeper
-	MintKeeper       mint.Keeper
-	DistrKeeper      distr.Keeper
-	GovKeeper        gov.Keeper
-	CrisisKeeper     crisis.Keeper
-	UpgradeKeeper    upgrade.Keeper
-	ParamsKeeper     params.Keeper
-	IBCKeeper        *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
-	EvidenceKeeper   evidence.Keeper
-	TransferKeeper   transfer.Keeper
+	AccountKeeper       auth.AccountKeeper
+	AuthorizationKeeper msg_authorization.Keeper
+	BankKeeper          bank.Keeper
+	CapabilityKeeper    *capability.Keeper
+	StakingKeeper       staking.Keeper
+	SlashingKeeper      slashing.Keeper
+	MintKeeper          mint.Keeper
+	DistrKeeper         distr.Keeper
+	GovKeeper           gov.Keeper
+	CrisisKeeper        crisis.Keeper
+	UpgradeKeeper       upgrade.Keeper
+	ParamsKeeper        params.Keeper
+	IBCKeeper           *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
+	EvidenceKeeper      evidence.Keeper
+	TransferKeeper      transfer.Keeper
 
 	// make scoped keepers public for test purposes
 	ScopedIBCKeeper      capability.ScopedKeeper
@@ -151,9 +154,9 @@ func NewSimApp(
 
 	keys := sdk.NewKVStoreKeys(
 		auth.StoreKey, bank.StoreKey, staking.StoreKey,
-		mint.StoreKey, distr.StoreKey, slashing.StoreKey,
-		gov.StoreKey, params.StoreKey, ibc.StoreKey, upgrade.StoreKey,
-		evidence.StoreKey, transfer.StoreKey, capability.StoreKey,
+		mint.StoreKey, msg_authorization.StoreKey, distr.StoreKey,
+		slashing.StoreKey, gov.StoreKey, params.StoreKey, ibc.StoreKey,
+		upgrade.StoreKey, evidence.StoreKey, transfer.StoreKey, capability.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capability.MemStoreKey)
@@ -179,7 +182,6 @@ func NewSimApp(
 	app.subspaces[slashing.ModuleName] = app.ParamsKeeper.Subspace(slashing.DefaultParamspace)
 	app.subspaces[gov.ModuleName] = app.ParamsKeeper.Subspace(gov.DefaultParamspace).WithKeyTable(gov.ParamKeyTable())
 	app.subspaces[crisis.ModuleName] = app.ParamsKeeper.Subspace(crisis.DefaultParamspace)
-
 	// set the BaseApp's parameter store
 	bApp.SetParamStore(app.ParamsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(std.ConsensusParamsKeyTable()))
 
@@ -214,6 +216,8 @@ func NewSimApp(
 	)
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], appCodec, homePath)
 
+	router := baseapp.NewRouter()
+	app.AuthorizationKeeper = msg_authorization.NewKeeper(keys[msg_authorization.StoreKey], appCodec, router)
 	// register the proposal types
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
@@ -266,6 +270,7 @@ func NewSimApp(
 	app.mm = module.NewManager(
 		genutil.NewAppModule(app.AccountKeeper, app.StakingKeeper, app.BaseApp.DeliverTx),
 		auth.NewAppModule(appCodec, app.AccountKeeper),
+		msg_authorization.NewAppModule(app.AuthorizationKeeper),
 		bank.NewAppModule(appCodec, app.BankKeeper, app.AccountKeeper),
 		capability.NewAppModule(appCodec, *app.CapabilityKeeper),
 		crisis.NewAppModule(&app.CrisisKeeper),

@@ -1,11 +1,15 @@
-package keeper
+package keeper_test
 
 import (
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/x/msg_authorization/keeper"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -19,9 +23,27 @@ type TestSuite struct {
 	accountKeeper auth.AccountKeeper
 	paramsKeeper  params.Keeper
 	bankKeeper    bank.Keeper
-	keeper        Keeper
-	router        baseapp.Router
+	keeper        keeper.Keeper
+	router        sdk.Router
 }
+
+func SetupTestInput() (sdk.Context, auth.AccountKeeper, params.Keeper, bank.Keeper, keeper.Keeper, sdk.Router) {
+
+	app := simapp.Setup(false)
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
+
+	router := baseapp.NewRouter()
+	return ctx, app.AccountKeeper, app.ParamsKeeper, app.BankKeeper, app.AuthorizationKeeper, router
+}
+
+var (
+	granteePub    = ed25519.GenPrivKey().PubKey()
+	granterPub    = ed25519.GenPrivKey().PubKey()
+	recipientPub  = ed25519.GenPrivKey().PubKey()
+	granteeAddr   = sdk.AccAddress(granteePub.Address())
+	granterAddr   = sdk.AccAddress(granterPub.Address())
+	recipientAddr = sdk.AccAddress(recipientPub.Address())
+)
 
 func (s *TestSuite) SetupTest() {
 	s.ctx, s.accountKeeper, s.paramsKeeper, s.bankKeeper, s.keeper, s.router = SetupTestInput()
