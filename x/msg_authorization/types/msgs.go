@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -114,7 +115,7 @@ func NewMsgExecAuthorized(grantee sdk.AccAddress, msgs []sdk.Msg) (*MsgExecAutho
 		Grantee: grantee,
 	}
 
-	err := m.SetMsgs(msgs)
+	err := m.SetMsgs(msgs[0])
 
 	return m, err
 }
@@ -138,34 +139,59 @@ func (msg MsgExecAuthorized) ValidateBasic() error {
 	return nil
 }
 
-func (m *MsgExecAuthorized) SetMsgs(msgs []sdk.Msg) error {
-	for _, msg := range msgs {
-		msg1, ok := msg.(proto.Message)
-		if !ok {
-			return fmt.Errorf("can't proto marshal %T", msg1)
-		}
-		any, err := types.NewAnyWithValue(msg1)
-		if err != nil {
-			return err
-		}
-		m.Msgs = append(m.Msgs, any)
+// func (m *MsgExecAuthorized) SetMsgs(msgs []sdk.Msg) error {
+// 	for _, msg := range msgs {
+// 		msg1, ok := msg.(proto.Message)
+// 		if !ok {
+// 			return fmt.Errorf("can't proto marshal %T", msg1)
+// 		}
+// 		any, err := types.NewAnyWithValue(msg1)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		m.Msgs = append(m.Msgs, any)
+// 	}
+
+// 	return nil
+// }
+
+func (m *MsgExecAuthorized) SetMsgs(msg sdk.Msg) error {
+	msg1, ok := msg.(proto.Message)
+	if !ok {
+		return fmt.Errorf("can't proto marshal %T", msg1)
 	}
+	any, err := types.NewAnyWithValue(msg1)
+	if err != nil {
+		return err
+	}
+	m.Msg = any
 
 	return nil
 }
 
+// // GetMsgs return unpacked interfaces from any
+// func (m *MsgExecAuthorized) GetMsgs() ([]sdk.Msg, error) {
+// 	var msgs []sdk.Msg
+// 	for _, msgItem := range m.Msgs {
+// 		var msgInfo sdk.Msg
+// 		err := ModuleCdc.UnpackAny(msgItem, &msgInfo)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		msgs = append(msgs, msgInfo)
+// 	}
+
+// 	return msgs, nil
+// }
+
 // GetMsgs return unpacked interfaces from any
-func (m *MsgExecAuthorized) GetMsgs() ([]sdk.Msg, error) {
-	var msgs []sdk.Msg
-	for _, msgItem := range m.Msgs {
-		var msgInfo sdk.Msg
-		err := ModuleCdc.UnpackAny(msgItem, &msgInfo)
-		if err != nil {
-			return nil, err
-		}
+func (m *MsgExecAuthorized) GetMsgs() (sdk.Msg, error) {
 
-		msgs = append(msgs, msgInfo)
+	msg, ok := m.Msg.GetCachedValue().(sdk.Msg)
+	// err := ModuleCdc.UnpackAny(m.Authorization, &autorization)
+	if !ok {
+		return nil, errors.New("error while getting msgs")
 	}
-
-	return msgs, nil
+	return msg, nil
 }

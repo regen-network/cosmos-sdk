@@ -60,39 +60,37 @@ func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 
 // DispatchActions attempts to execute the provided messages via authorization
 // grants from the message signer to the grantee.
-func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []sdk.Msg) (*sdk.Result, error) {
+func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msg sdk.Msg) (*sdk.Result, error) {
 	var msgResult *sdk.Result
 	var err error
-	for _, msg := range msgs {
-		signers := msg.GetSigners()
-		if len(signers) != 1 {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "authorization can be given to msg with only one signer")
+	signers := msg.GetSigners()
+	if len(signers) != 1 {
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "authorization can be given to msg with only one signer")
+	}
+	granter := signers[0]
+	if !bytes.Equal(granter, grantee) {
+		authorization, _ := k.GetAuthorization(ctx, grantee, granter, msg.Type())
+		if authorization == nil {
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "authorization not found")
 		}
-		granter := signers[0]
-		if !bytes.Equal(granter, grantee) {
-			authorization, _ := k.GetAuthorization(ctx, grantee, granter, msg.Type())
-			if authorization == nil {
-				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "authorization not found")
-			}
-			allow, updated, del := authorization.Accept(msg, ctx.BlockHeader())
-			if !allow {
-				return nil, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "authorization not found")
-			}
-			if del {
-				k.Revoke(ctx, grantee, granter, msg.Type())
-			} else if updated != nil {
-				k.update(ctx, grantee, granter, updated)
-			}
+		allow, updated, del := authorization.Accept(msg, ctx.BlockHeader())
+		if !allow {
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "authorization not found")
 		}
-		handler := k.router.Route(ctx, msg.Route())
-		if handler == nil {
-			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s", msg.Route())
+		if del {
+			k.Revoke(ctx, grantee, granter, msg.Type())
+		} else if updated != nil {
+			k.update(ctx, grantee, granter, updated)
 		}
+	}
+	handler := k.router.Route(ctx, msg.Route())
+	if handler == nil {
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s", msg.Route())
+	}
 
-		msgResult, err = handler(ctx, msg)
-		if err != nil {
-			return nil, sdkerrors.Wrapf(err, "failed to execute message; message %s", msg.Type())
-		}
+	msgResult, err = handler(ctx, msg)
+	if err != nil {
+		return nil, sdkerrors.Wrapf(err, "failed to execute message; message %s", msg.Type())
 	}
 
 	return msgResult, nil

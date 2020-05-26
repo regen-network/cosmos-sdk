@@ -65,17 +65,12 @@ func handleMsgRevokeAuthorization(ctx sdk.Context, msg MsgRevokeAuthorization, k
 }
 
 func handleMsgExecAuthorized(ctx sdk.Context, msg MsgExecAuthorized, k Keeper) (*sdk.Result, error) {
-	var msgs []sdk.Msg
-	for _, msgItem := range msg.Msgs {
-		var msgInfo sdk.Msg
-		err := ModuleCdc.UnpackAny(msgItem, &msgInfo)
-		// err := k.GetCodec().UnpackAny(msgItem, &msgInfo)
-		if err != nil {
-			return nil, err
-		}
-
-		msgs = append(msgs, msgInfo)
+	var msgInfo sdk.Msg
+	err := ModuleCdc.UnpackAny(msg.Msg, &msgInfo)
+	// err := k.GetCodec().UnpackAny(msgItem, &msgInfo)
+	if err != nil {
+		return nil, err
 	}
 
-	return k.DispatchActions(ctx, msg.Grantee, msgs)
+	return k.DispatchActions(ctx, msg.Grantee, msgInfo)
 }

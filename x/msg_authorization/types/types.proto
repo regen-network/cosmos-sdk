@@ -79,8 +79,8 @@ message MsgExecAuthorized {
     option (gogoproto.goproto_getters) = false;
 
     bytes grantee = 1 [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
-    repeated google.protobuf.Any msgs = 2 [
+    google.protobuf.Any msg = 2 [
         (cosmos_proto.accepts_interface) = "github.com/cosmos/cosmos-sdk/types.Msg",
-        (gogoproto.moretags) = "yaml:\"msgs\""
+        (gogoproto.moretags) = "yaml:\"msg\""
     ];
 }

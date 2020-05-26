@@ -116,13 +116,13 @@ func (s *TestSuite) TestKeeperFees() {
 		Grantee: granteeAddr,
 	}
 
-	err = msgs.SetMsgs([]sdk.Msg{
+	err = msgs.SetMsgs(
 		bank.MsgSend{
 			Amount:      sdk.NewCoins(sdk.NewInt64Coin("steak", 2)),
 			FromAddress: granterAddr,
 			ToAddress:   recipientAddr,
 		},
-	})
+	)
 	s.Require().Nil(err)
 
 	s.T().Log("verify dispatch fails with invalid authorization")
@@ -158,13 +158,13 @@ func (s *TestSuite) TestKeeperFees() {
 	msgs = types.MsgExecAuthorized{
 		Grantee: granteeAddr,
 	}
-	msgs.SetMsgs([]sdk.Msg{
+	msgs.SetMsgs(
 		bank.MsgSend{
 			Amount:      someCoin,
 			FromAddress: granterAddr,
 			ToAddress:   recipientAddr,
 		},
-	})
+	)
 
 	msgsInfo, err = msgs.GetMsgs()
 	s.Require().Nil(err)
