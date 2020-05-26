@@ -30,7 +30,7 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 		"cosmos_sdk.msgauth.v1.Authorization",
 		(*AuthorizationI)(nil),
 		&SendAuthorization{},
-		&GenericAuthorization{},
+		// &GenericAuthorization{},
 	)
 }
 

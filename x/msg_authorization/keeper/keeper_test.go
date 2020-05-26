@@ -1,12 +1,14 @@
 package keeper_test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/x/msg_authorization/keeper"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto/ed25519"
-	"testing"
 
 	"github.com/stretchr/testify/suite"
 
@@ -30,7 +32,8 @@ type TestSuite struct {
 func SetupTestInput() (sdk.Context, auth.AccountKeeper, params.Keeper, bank.Keeper, keeper.Keeper, sdk.Router) {
 
 	app := simapp.Setup(false)
-	ctx := app.BaseApp.NewContext(false, abci.Header{})
+	// ctx := app.BaseApp.NewContext(false, abci.Header{Time: time.Now()})
+	ctx := app.BaseApp.NewContext(false, abci.Header{Time: time.Unix(0, 0)})
 
 	router := baseapp.NewRouter()
 	return ctx, app.AccountKeeper, app.ParamsKeeper, app.BankKeeper, app.AuthorizationKeeper, router
@@ -113,13 +116,14 @@ func (s *TestSuite) TestKeeperFees() {
 		Grantee: granteeAddr,
 	}
 
-	msgs.SetMsgs([]sdk.Msg{
+	err = msgs.SetMsgs([]sdk.Msg{
 		bank.MsgSend{
 			Amount:      sdk.NewCoins(sdk.NewInt64Coin("steak", 2)),
 			FromAddress: granterAddr,
 			ToAddress:   recipientAddr,
 		},
 	})
+	s.Require().Nil(err)
 
 	s.T().Log("verify dispatch fails with invalid authorization")
 	msgsInfo, err := msgs.GetMsgs()
