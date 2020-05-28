@@ -109,7 +109,109 @@ func SimulateMsgGrantAuthorization(ak types.AccountKeeper, bk types.BankKeeper, 
 // SimulateMsgRevokeAuthorization generates a MsgRevokeAuthorization with random values
 // nolint: interfacer
 func SimulateMsgRevokeAuthorization(ak types.AccountKeeper, bk types.BankKeeper, k keeper.Keeper) simtypes.Operation {
-	return func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accounts []simtypes.Account, chainID string) (OperationMsg simtypes.OperationMsg, futureOps []simtypes.FutureOperation, err error) {
-		return simtypes.NoOpMsg(types.ModuleName), nil, nil
+	return func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accounts []simtypes.Account,
+		chainID string) (OperationMsg simtypes.OperationMsg, futureOps []simtypes.FutureOperation, err error) {
+		granterAcc, _ := simtypes.RandomAcc(r, accounts)
+		granteeAcc, _ := simtypes.RandomAcc(r, accounts)
+		authorization, expiration := k.GetAuthorization(ctx, granteeAcc.Address, granterAcc.Address, bank.MsgSend{}.Type())
+
+		if authorization == nil && expiration == 0 {
+			return simtypes.NoOpMsg(types.ModuleName), nil, nil
+		}
+
+		now := ctx.BlockHeader().Time
+		newCoins := sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 100))
+		x := &types.SendAuthorization{SpendLimit: newCoins}
+		xAny, err := types.ConvertToAny(x)
+
+		k.Grant(ctx, granteeAcc.Address, granterAcc.Address, xAny, now.Unix()+3600)
+		msgRevokeAuthorization := types.NewMsgRevokeAuthorization(granterAcc.Address, granteeAcc.Address, bank.MsgSend{}.Type())
+
+		var fees sdk.Coins
+		granterAccount := ak.GetAccount(ctx, granterAcc.Address)
+		spendable := bk.SpendableCoins(ctx, granterAccount.GetAddress())
+		fees, err = simtypes.RandomFees(r, ctx, spendable)
+
+		if err != nil {
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
+		}
+
+		tx := helpers.GenTx(
+			[]sdk.Msg{msgRevokeAuthorization},
+			fees,
+			helpers.DefaultGenTxGas,
+			chainID,
+			[]uint64{granterAccount.GetAccountNumber()},
+			[]uint64{granterAccount.GetSequence()},
+			granterAcc.PrivKey,
+		)
+
+		_, _, err = app.Deliver(tx)
+
+		if err != nil {
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
+		}
+
+		return simtypes.NewOperationMsg(msgRevokeAuthorization, true, ""), nil, nil
+	}
+}
+
+// SimulateMsgExecAuthorization generates a MsgExecAuthorization with random values
+// nolint: interfacer
+func SimulateMsgExecAuthorization(ak types.AccountKeeper, bk types.BankKeeper, k keeper.Keeper) simtypes.Operation {
+	return func(r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accounts []simtypes.Account,
+		chainID string) (OperationMsg simtypes.OperationMsg, futureOps []simtypes.FutureOperation, err error) {
+		granterAcc, _ := simtypes.RandomAcc(r, accounts)
+		granteeAcc, _ := simtypes.RandomAcc(r, accounts)
+		recipientAcc, _ := simtypes.RandomAcc(r, accounts)
+		denom := sdk.DefaultBondDenom
+		authorization, expiration := k.GetAuthorization(ctx, granteeAcc.Address, granterAcc.Address, bank.MsgSend{}.Type())
+
+		if authorization == nil && expiration == 0 {
+			return simtypes.NoOpMsg(types.ModuleName), nil, nil
+		}
+
+		now := ctx.BlockHeader().Time
+		newCoins := sdk.NewCoins(sdk.NewInt64Coin(denom, 100))
+		x := &types.SendAuthorization{SpendLimit: newCoins}
+		xAny, err := types.ConvertToAny(x)
+
+		k.Grant(ctx, granteeAcc.Address, granterAcc.Address, xAny, now.Unix()+3600)
+		msgs := []sdk.Msg{
+			bank.MsgSend{
+				Amount:      sdk.NewCoins(sdk.NewInt64Coin(denom, 2)),
+				FromAddress: granterAcc.Address,
+				ToAddress:   recipientAcc.Address,
+			},
+		}
+
+		msgExecAuthorization, err := types.NewMsgExecAuthorized(granterAcc.Address, msgs)
+
+		var fees sdk.Coins
+		granteeAccount := ak.GetAccount(ctx, granteeAcc.Address)
+		spendable := bk.SpendableCoins(ctx, granteeAccount.GetAddress())
+		fees, err = simtypes.RandomFees(r, ctx, spendable)
+
+		if err != nil {
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
+		}
+
+		tx := helpers.GenTx(
+			[]sdk.Msg{msgExecAuthorization},
+			fees,
+			helpers.DefaultGenTxGas,
+			chainID,
+			[]uint64{granteeAccount.GetAccountNumber()},
+			[]uint64{granteeAccount.GetSequence()},
+			granterAcc.PrivKey,
+		)
+
+		_, _, err = app.Deliver(tx)
+
+		if err != nil {
+			return simtypes.NoOpMsg(types.ModuleName), nil, err
+		}
+
+		return simtypes.NewOperationMsg(msgExecAuthorization, true, ""), nil, nil
 	}
 }

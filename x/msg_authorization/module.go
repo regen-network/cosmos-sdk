@@ -2,7 +2,9 @@ package msg_authorization
 
 import (
 	"encoding/json"
+
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/x/msg_authorization/simulation"
 	"github.com/cosmos/cosmos-sdk/x/msg_authorization/types"
 
 	"github.com/gorilla/mux"
@@ -13,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/msg_authorization/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/msg_authorization/client/rest"
 )
@@ -116,6 +119,7 @@ func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONMarshaler) json
 	return am.DefaultGenesis(codec.Cdc)
 }
 
+// BeginBlock does nothing
 func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 }
@@ -123,4 +127,25 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 // EndBlock does nothing
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
+}
+
+//____________________________________________________________________________
+
+// AppModuleSimulation functions
+
+// GenerateGenesisState creates a randomized GenState of the staking module.
+func (AppModule) GenerateGenesisState(simState *module.SimulationState) {
+	simulation.RandomizedGenState(simState)
+}
+
+// RegisterStoreDecoder registers a decoder for staking module's types
+func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
+	sdr[StoreKey] = simulation.NewDecodeStore(am.keeper)
+}
+
+// WeightedOperations returns the all the staking module operations with their respective weights.
+func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
+	// TODO replace am.accountKeeper, am.bankKeeper
+	return simulation.WeightedOperations(
+		simState.AppParams, simState.Cdc, nil, nil, am.keeper)
 }
