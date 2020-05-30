@@ -52,10 +52,10 @@ func WeightedOperations(
 	)
 
 	return simulation.WeightedOperations{
-		simulation.NewWeightedOperation(
-			weightMsgGrantAuthorization,
-			SimulateMsgGrantAuthorization(ak, bk, k),
-		),
+		// simulation.NewWeightedOperation(
+		// 	weightMsgGrantAuthorization,
+		// 	SimulateMsgGrantAuthorization(ak, bk, k),
+		// ),
 		simulation.NewWeightedOperation(
 			weightMsgRevokeAuthorization,
 			SimulateMsgRevokeAuthorization(ak, bk, k),
