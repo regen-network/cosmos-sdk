@@ -19,14 +19,14 @@ import (
 )
 
 // GetTxCmd returns the transaction commands for this module
-func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
+func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	AuthorizationTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "AuthorizationI transactions subcommands",
 		Long:                       "Authorize and revoke access to execute transactions on behalf of your address",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
-		RunE: client.ValidateCmd,
+		RunE:                       client.ValidateCmd,
 	}
 
 	AuthorizationTxCmd.AddCommand(flags.PostCommands(

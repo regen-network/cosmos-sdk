@@ -58,9 +58,8 @@ func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetTxCmd returns the transaction commands for this module
-func (AppModuleBasic) GetTxCmd(cdc context.CLIContext) *cobra.Command {
-	// TODO: Integrate cli commands
-	return nil
+func (AppModuleBasic) GetTxCmd(ctx context.CLIContext) *cobra.Command {
+	return cli.GetTxCmd(ctx.Codec)
 }
 
 // RegisterInterfaceTypes implements InterfaceModule.RegisterInterfaceTypes
