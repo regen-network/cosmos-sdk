@@ -2,6 +2,7 @@ package msg_authorization
 
 import (
 	"encoding/json"
+	"math/rand"
 
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/x/msg_authorization/simulation"
@@ -28,9 +29,10 @@ func init() {
 }
 
 var (
-	_ module.AppModule       = AppModule{}
-	_ module.AppModuleBasic  = AppModuleBasic{}
-	_ module.InterfaceModule = AppModuleBasic{}
+	_ module.AppModule           = AppModule{}
+	_ module.AppModuleBasic      = AppModuleBasic{}
+	_ module.InterfaceModule     = AppModuleBasic{}
+	_ module.AppModuleSimulation = AppModule{}
 )
 
 type AppModuleBasic struct{}
@@ -69,14 +71,18 @@ func (a AppModuleBasic) RegisterInterfaceTypes(registry codectypes.InterfaceRegi
 // AppModule implements the sdk.AppModule interface
 type AppModule struct {
 	AppModuleBasic
-	keeper Keeper
+	keeper        Keeper
+	accountKeeper types.AccountKeeper
+	bankKeeper    types.BankKeeper
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(keeper Keeper) AppModule {
+func NewAppModule(keeper Keeper, ak types.AccountKeeper, bk types.BankKeeper) AppModule {
 	return AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         keeper,
+		accountKeeper:  ak,
+		bankKeeper:     bk,
 	}
 }
 
@@ -145,7 +151,17 @@ func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
 
 // WeightedOperations returns the all the staking module operations with their respective weights.
 func (am AppModule) WeightedOperations(simState module.SimulationState) []simtypes.WeightedOperation {
-	// TODO replace am.accountKeeper, am.bankKeeper
 	return simulation.WeightedOperations(
-		simState.AppParams, simState.Cdc, nil, nil, am.keeper)
+		simState.AppParams, simState.Cdc, am.accountKeeper, am.bankKeeper, am.keeper)
+}
+
+// ProposalContents returns all the msgauth content functions used to
+// simulate governance proposals.
+func (am AppModule) ProposalContents(simState module.SimulationState) []simtypes.WeightedProposalContent {
+	return nil
+}
+
+// RandomizedParams creates randomized msgauth param changes for the simulator.
+func (AppModule) RandomizedParams(r *rand.Rand) []simtypes.ParamChange {
+	return nil
 }

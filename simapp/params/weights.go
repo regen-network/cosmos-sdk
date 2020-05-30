@@ -18,6 +18,7 @@ const (
 	DefaultWeightMsgBeginRedelegate             int = 100
 	DefaultWeightMsgGrantAuthorization          int = 100
 	DefaultWeightMsgRevokeAuthorization         int = 100
+	DefaultWeightMsgExecAuthorization           int = 100
 
 	DefaultWeightCommunitySpendProposal int = 5
 	DefaultWeightTextProposal           int = 5

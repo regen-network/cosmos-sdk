@@ -19,6 +19,7 @@ import (
 const (
 	OpWeightMsgGrantAuthorization  = "op_weight_msg_grant_authorization"
 	OpWeightMsgRevokeAuthorization = "op_weight_msg_revoke_authorization"
+	OpWeightMsgExecAuthorization   = "op_weight_msg_exec_authorization"
 )
 
 // WeightedOperations returns all the operations from the module with their respective weights
@@ -29,6 +30,7 @@ func WeightedOperations(
 	var (
 		weightMsgGrantAuthorization  int
 		weightMsgRevokeAuthorization int
+		weightMsgExecAuthorization   int
 	)
 
 	appParams.GetOrGenerate(cdc, OpWeightMsgGrantAuthorization, &weightMsgGrantAuthorization, nil,
@@ -43,6 +45,12 @@ func WeightedOperations(
 		},
 	)
 
+	appParams.GetOrGenerate(cdc, OpWeightMsgExecAuthorization, &weightMsgExecAuthorization, nil,
+		func(_ *rand.Rand) {
+			weightMsgExecAuthorization = simappparams.DefaultWeightMsgExecAuthorization
+		},
+	)
+
 	return simulation.WeightedOperations{
 		simulation.NewWeightedOperation(
 			weightMsgGrantAuthorization,
@@ -51,6 +59,10 @@ func WeightedOperations(
 		simulation.NewWeightedOperation(
 			weightMsgRevokeAuthorization,
 			SimulateMsgRevokeAuthorization(ak, bk, k),
+		),
+		simulation.NewWeightedOperation(
+			weightMsgExecAuthorization,
+			SimulateMsgExecAuthorization(ak, bk, k),
 		),
 	}
 }
@@ -64,7 +76,7 @@ func SimulateMsgGrantAuthorization(ak types.AccountKeeper, bk types.BankKeeper, 
 		granteeAcc, _ := simtypes.RandomAcc(r, accounts)
 		authorization, expiration := k.GetAuthorization(ctx, granteeAcc.Address, granterAcc.Address, bank.MsgSend{}.Type())
 
-		if authorization == nil && expiration == 0 {
+		if authorization != nil && expiration != 0 {
 			return simtypes.NoOpMsg(types.ModuleName), nil, nil
 		}
 
@@ -115,7 +127,7 @@ func SimulateMsgRevokeAuthorization(ak types.AccountKeeper, bk types.BankKeeper,
 		granteeAcc, _ := simtypes.RandomAcc(r, accounts)
 		authorization, expiration := k.GetAuthorization(ctx, granteeAcc.Address, granterAcc.Address, bank.MsgSend{}.Type())
 
-		if authorization == nil && expiration == 0 {
+		if authorization != nil && expiration != 0 {
 			return simtypes.NoOpMsg(types.ModuleName), nil, nil
 		}
 
@@ -167,7 +179,7 @@ func SimulateMsgExecAuthorization(ak types.AccountKeeper, bk types.BankKeeper, k
 		denom := sdk.DefaultBondDenom
 		authorization, expiration := k.GetAuthorization(ctx, granteeAcc.Address, granterAcc.Address, bank.MsgSend{}.Type())
 
-		if authorization == nil && expiration == 0 {
+		if authorization != nil && expiration != 0 {
 			return simtypes.NoOpMsg(types.ModuleName), nil, nil
 		}
 
@@ -185,7 +197,7 @@ func SimulateMsgExecAuthorization(ak types.AccountKeeper, bk types.BankKeeper, k
 			},
 		}
 
-		msgExecAuthorization, err := types.NewMsgExecAuthorized(granterAcc.Address, msgs)
+		msgExecAuthorization, err := types.NewMsgExecAuthorized(granteeAcc.Address, msgs)
 
 		var fees sdk.Coins
 		granteeAccount := ak.GetAccount(ctx, granteeAcc.Address)
@@ -203,7 +215,7 @@ func SimulateMsgExecAuthorization(ak types.AccountKeeper, bk types.BankKeeper, k
 			chainID,
 			[]uint64{granteeAccount.GetAccountNumber()},
 			[]uint64{granteeAccount.GetSequence()},
-			granterAcc.PrivKey,
+			granteeAcc.PrivKey,
 		)
 
 		_, _, err = app.Deliver(tx)
