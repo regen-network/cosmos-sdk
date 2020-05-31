@@ -36,7 +36,7 @@ func (authorization SendAuthorization) Accept(msg sdk.Msg, block abci.Header) (a
 	return false, nil, false
 }
 
-// ConvertToAny converts interface(types.AuthorizationI) type to any
+// ConvertToAny converts interface(types.AuthorizationI) to any
 func ConvertToAny(authorization AuthorizationI) (*codectypes.Any, error) {
 	msg, ok := authorization.(proto.Message)
 	if !ok {
