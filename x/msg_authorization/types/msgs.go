@@ -71,8 +71,8 @@ func (m *MsgGrantAuthorization) GetAuthorization() AuthorizationI {
 	return autorization
 }
 
-func NewMsgRevokeAuthorization(granter sdk.AccAddress, grantee sdk.AccAddress, authorizationMsgType string) MsgRevokeAuthorization {
-	return MsgRevokeAuthorization{
+func NewMsgRevokeAuthorization(granter sdk.AccAddress, grantee sdk.AccAddress, authorizationMsgType string) *MsgRevokeAuthorization {
+	return &MsgRevokeAuthorization{
 		Granter:              granter,
 		Grantee:              grantee,
 		AuthorizationMsgType: authorizationMsgType,

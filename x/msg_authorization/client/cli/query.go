@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,7 +12,7 @@ import (
 )
 
 // GetQueryCmd returns the cli query commands for this module
-func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	authorizationQueryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the msg authorization module",
@@ -24,14 +23,14 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	}
 
 	authorizationQueryCmd.AddCommand(flags.GetCommands(
-		GetCmdQueryAuthorization(queryRoute, cdc),
+		GetCmdQueryAuthorization(cdc),
 	)...)
 
 	return authorizationQueryCmd
 }
 
 // GetCmdQueryAuthorization implements the query authorizations command.
-func GetCmdQueryAuthorization(storeName string, cdc *codec.Codec) *cobra.Command {
+func GetCmdQueryAuthorization(cdc *codec.Codec) *cobra.Command {
 	//TODO update description
 	return &cobra.Command{
 		Use:   "authorization",
@@ -39,7 +38,7 @@ func GetCmdQueryAuthorization(storeName string, cdc *codec.Codec) *cobra.Command
 		Short: "query authorization for a granter-grantee pair",
 		Long:  "query authorization for a granter-grantee pair",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			clientCtx := client.NewContext().WithCodec(cdc)
 
 			granterAddr, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
@@ -53,7 +52,7 @@ func GetCmdQueryAuthorization(storeName string, cdc *codec.Codec) *cobra.Command
 
 			msgAuthorized := args[2]
 
-			res, _, err := cliCtx.QueryStore(types.GetActorAuthorizationKey(granteeAddr, granterAddr, msgAuthorized), storeName)
+			res, _, err := clientCtx.QueryStore(types.GetActorAuthorizationKey(granteeAddr, granterAddr, msgAuthorized), types.QuerierRoute)
 			if err != nil {
 				return err
 			}
@@ -68,7 +67,7 @@ func GetCmdQueryAuthorization(storeName string, cdc *codec.Codec) *cobra.Command
 				return err
 			}
 
-			return cliCtx.PrintOutput(grant)
+			return clientCtx.PrintOutput(grant)
 		},
 	}
 }
