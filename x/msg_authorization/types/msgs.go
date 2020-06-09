@@ -109,8 +109,9 @@ func (msg MsgRevokeAuthorization) ValidateBasic() error {
 // 	Msgs    []sdk.Msg      `json:"msgs"`
 // }
 
-func NewMsgExecAuthorized(grantee sdk.AccAddress, msgs []sdk.Msg) (*MsgExecAuthorized, error) {
-	m := &MsgExecAuthorized{
+func NewMsgExecAuthorized(grantee sdk.AccAddress, msgs []sdk.Msg) (MsgExecAuthorized, error) {
+	// TODO change to pointer address
+	m := MsgExecAuthorized{
 		Grantee: grantee,
 	}
 

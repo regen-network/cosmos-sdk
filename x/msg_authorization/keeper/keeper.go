@@ -150,3 +150,23 @@ func (k Keeper) GetAuthorization(ctx sdk.Context, grantee sdk.AccAddress, grante
 
 	return authorization, grant.Expiration
 }
+
+// UnmarshalAuthorization returns an Authorization interface from raw encoded authorization
+// bytes of a Proto-based Authorization type. An error is returned upon decoding
+// failure.
+func (k Keeper) UnmarshalAuthorization(bz []byte) (types.AuthorizationI, error) {
+	var authorization types.AuthorizationI
+
+	if err := codec.UnmarshalAny(k.cdc, &authorization, bz); err != nil {
+		return nil, err
+	}
+
+	return authorization, nil
+}
+
+// MarshalAuthorization marshals an Authorization interface. If the given type implements
+// the Marshaler interface, it is treated as a Proto-defined message and
+// serialized that way. Otherwise, it falls back on the internal Amino codec.
+func (k Keeper) MarshalAuthorization(authorizationI types.AuthorizationI) ([]byte, error) {
+	return codec.MarshalAny(k.cdc, authorizationI)
+}
