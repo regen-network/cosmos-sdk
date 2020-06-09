@@ -1,11 +1,17 @@
-package keeper
+package keeper_test
 
 import (
 	"testing"
+	"time"
+
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/x/msg_authorization/keeper"
+	abci "github.com/tendermint/tendermint/abci/types"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -19,9 +25,28 @@ type TestSuite struct {
 	accountKeeper auth.AccountKeeper
 	paramsKeeper  params.Keeper
 	bankKeeper    bank.Keeper
-	keeper        Keeper
-	router        baseapp.Router
+	keeper        keeper.Keeper
+	router        sdk.Router
 }
+
+func SetupTestInput() (sdk.Context, auth.AccountKeeper, params.Keeper, bank.Keeper, keeper.Keeper, sdk.Router) {
+
+	app := simapp.Setup(false)
+	// ctx := app.BaseApp.NewContext(false, abci.Header{Time: time.Now()})
+	ctx := app.BaseApp.NewContext(false, abci.Header{Time: time.Unix(0, 0)})
+
+	router := baseapp.NewRouter()
+	return ctx, app.AccountKeeper, app.ParamsKeeper, app.BankKeeper, app.AuthorizationKeeper, router
+}
+
+var (
+	granteePub    = ed25519.GenPrivKey().PubKey()
+	granterPub    = ed25519.GenPrivKey().PubKey()
+	recipientPub  = ed25519.GenPrivKey().PubKey()
+	granteeAddr   = sdk.AccAddress(granteePub.Address())
+	granterAddr   = sdk.AccAddress(granterPub.Address())
+	recipientAddr = sdk.AccAddress(recipientPub.Address())
+)
 
 func (s *TestSuite) SetupTest() {
 	s.ctx, s.accountKeeper, s.paramsKeeper, s.bankKeeper, s.keeper, s.router = SetupTestInput()
@@ -41,14 +66,14 @@ func (s *TestSuite) TestKeeper() {
 
 	newCoins := sdk.NewCoins(sdk.NewInt64Coin("steak", 100))
 	s.T().Log("verify if expired authorization is rejected")
-	x := types.Authorization{Sum: &types.Authorization_SendAuthorization{SendAuthorization: &types.SendAuthorization{SpendLimit: newCoins}}}
-	s.keeper.Grant(s.ctx, granterAddr, granteeAddr, x, now.Unix()-3600)
+	x := &types.SendAuthorization{SpendLimit: newCoins}
+	xAny, err := types.ConvertToAny(x)
+	s.keeper.Grant(s.ctx, granterAddr, granteeAddr, xAny, now.Unix()-3600)
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{}.Type())
 	s.Require().Nil(authorization)
 
 	s.T().Log("verify if authorization is accepted")
-	x = types.Authorization{Sum: &types.Authorization_SendAuthorization{SendAuthorization: &types.SendAuthorization{SpendLimit: newCoins}}}
-	s.keeper.Grant(s.ctx, granteeAddr, granterAddr, x, now.Unix()-3600)
+	s.keeper.Grant(s.ctx, granteeAddr, granterAddr, xAny, now.Unix()+3600)
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{}.Type())
 	s.Require().NotNil(authorization)
 	s.Require().Equal(authorization.MsgType(), bank.MsgSend{}.Type())
@@ -89,31 +114,40 @@ func (s *TestSuite) TestKeeperFees() {
 
 	msgs := types.MsgExecAuthorized{
 		Grantee: granteeAddr,
-		Msgs: []sdk.Msg{
-			bank.MsgSend{
-				Amount:      sdk.NewCoins(sdk.NewInt64Coin("steak", 2)),
-				FromAddress: granterAddr,
-				ToAddress:   recipientAddr,
-			},
-		},
 	}
 
+	err = msgs.SetMsgs([]sdk.Msg{
+		&bank.MsgSend{
+			Amount:      sdk.NewCoins(sdk.NewInt64Coin("steak", 2)),
+			FromAddress: granterAddr,
+			ToAddress:   recipientAddr,
+		},
+	})
+	s.Require().Nil(err)
+
 	s.T().Log("verify dispatch fails with invalid authorization")
-	result, error := s.keeper.DispatchActions(s.ctx, granteeAddr, msgs.Msgs)
+	msgsInfo, err := msgs.GetMsgs()
+	s.Require().Nil(err)
+	result, err := s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
+
 	s.Require().Nil(result)
-	s.Require().NotNil(error)
+	s.Require().NotNil(err)
 
 	s.T().Log("verify dispatch executes with correct information")
 	// grant authorization
-	auth := types.Authorization{Sum: &types.Authorization_SendAuthorization{SendAuthorization: &types.SendAuthorization{SpendLimit: smallCoin}}}
-	s.keeper.Grant(s.ctx, granteeAddr, granterAddr, auth, now.Unix())
+	auth := &types.SendAuthorization{SpendLimit: smallCoin}
+	authAny, err := types.ConvertToAny(auth)
+	s.keeper.Grant(s.ctx, granteeAddr, granterAddr, authAny, now.Unix())
 	authorization, expiration := s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{}.Type())
 	s.Require().NotNil(authorization)
 	s.Require().Zero(expiration)
 	s.Require().Equal(authorization.MsgType(), bank.MsgSend{}.Type())
-	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgs.Msgs)
+
+	msgsInfo, err = msgs.GetMsgs()
+	s.Require().Nil(err)
+	result, err = s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
 	s.Require().NotNil(result)
-	s.Require().Nil(error)
+	s.Require().Nil(err)
 
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{}.Type())
 	s.Require().NotNil(authorization)
@@ -123,18 +157,20 @@ func (s *TestSuite) TestKeeperFees() {
 
 	msgs = types.MsgExecAuthorized{
 		Grantee: granteeAddr,
-		Msgs: []sdk.Msg{
-			bank.MsgSend{
-				Amount:      someCoin,
-				FromAddress: granterAddr,
-				ToAddress:   recipientAddr,
-			},
-		},
 	}
+	msgs.SetMsgs([]sdk.Msg{
+		&bank.MsgSend{
+			Amount:      someCoin,
+			FromAddress: granterAddr,
+			ToAddress:   recipientAddr,
+		},
+	})
 
-	result, error = s.keeper.DispatchActions(s.ctx, granteeAddr, msgs.Msgs)
+	msgsInfo, err = msgs.GetMsgs()
+	s.Require().Nil(err)
+	result, err = s.keeper.DispatchActions(s.ctx, granteeAddr, msgsInfo)
 	s.Require().Nil(result)
-	s.Require().NotNil(error)
+	s.Require().NotNil(err)
 
 	authorization, _ = s.keeper.GetAuthorization(s.ctx, granteeAddr, granterAddr, bank.MsgSend{}.Type())
 	s.Require().NotNil(authorization)

@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -47,7 +46,7 @@ func GetCmdGrantAuthorization(cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+			cliCtx := client.NewContextWithInput(inBuf).WithCodec(cdc)
 
 			granter := cliCtx.FromAddress
 			grantee, err := sdk.AccAddressFromBech32(args[0])
@@ -71,7 +70,11 @@ func GetCmdGrantAuthorization(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgGrantAuthorization(granter, grantee, authorization, expiration)
+			msg, err := types.NewMsgGrantAuthorization(granter, grantee, authorization, expiration)
+			if err != nil {
+				return err
+			}
+
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
@@ -94,7 +97,7 @@ func GetCmdRevokeAuthorization(cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+			cliCtx := client.NewContextWithInput(inBuf).WithCodec(cdc)
 
 			granter := cliCtx.FromAddress
 			grantee, err := sdk.AccAddressFromBech32(args[0])
@@ -124,7 +127,7 @@ func GetCmdSendAs(cdc *codec.Codec) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(authclient.GetTxEncoder(cdc))
-			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+			cliCtx := client.NewContextWithInput(inBuf).WithCodec(cdc)
 
 			grantee := cliCtx.FromAddress
 
@@ -139,7 +142,10 @@ func GetCmdSendAs(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			msg := types.NewMsgExecAuthorized(grantee, stdTx.Msgs)
+			msg, err := types.NewMsgExecAuthorized(grantee, stdTx.Msgs)
+			if err != nil {
+				return err
+			}
 
 			if err := msg.ValidateBasic(); err != nil {
 				return err

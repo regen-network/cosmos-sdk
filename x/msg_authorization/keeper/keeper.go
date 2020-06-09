@@ -3,8 +3,9 @@ package keeper
 import (
 	"bytes"
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/baseapp"
+
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/msg_authorization/types"
@@ -13,11 +14,11 @@ import (
 type Keeper struct {
 	storeKey sdk.StoreKey
 	cdc      codec.Marshaler
-	router   baseapp.Router
+	router   sdk.Router
 }
 
-// NewKeeper constructs a message authorisation Keeper
-func NewKeeper(storeKey sdk.StoreKey, cdc codec.Marshaler, router baseapp.Router) Keeper {
+// NewKeeper constructs a message authorization Keeper
+func NewKeeper(storeKey sdk.StoreKey, cdc codec.Marshaler, router sdk.Router) Keeper {
 	return Keeper{
 		storeKey: storeKey,
 		cdc:      cdc,
@@ -39,12 +40,19 @@ func (k Keeper) getAuthorizationGrant(ctx sdk.Context, actor []byte) (grant type
 	return grant, true
 }
 
-func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated types.Authorization) {
-	actor := k.getActorAuthorizationKey(grantee, granter, updated.GetAuthorizationI().MsgType())
+func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated *codectypes.Any) {
+	var authorization types.AuthorizationI
+	err := k.cdc.UnpackAny(updated, &authorization)
+	if err != nil {
+		return
+	}
+
+	actor := k.getActorAuthorizationKey(grantee, granter, authorization.MsgType())
 	grant, found := k.getAuthorizationGrant(ctx, actor)
 	if !found {
 		return
 	}
+
 	grant.Authorization = updated
 	store := ctx.KVStore(k.storeKey)
 	store.Set(actor, k.cdc.MustMarshalBinaryBare(&grant))
@@ -72,7 +80,7 @@ func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []
 			}
 			if del {
 				k.Revoke(ctx, grantee, granter, msg.Type())
-			} else if !updated.Equal(nil) {
+			} else if updated != nil {
 				k.update(ctx, grantee, granter, updated)
 			}
 		}
@@ -93,10 +101,17 @@ func (k Keeper) DispatchActions(ctx sdk.Context, grantee sdk.AccAddress, msgs []
 // Grant method grants the provided authorization to the grantee on the granter's account with the provided expiration
 // time. If there is an existing authorization grant for the same `sdk.Msg` type, this grant
 // overwrites that.
-func (k Keeper) Grant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, authorization types.Authorization, expiration int64) {
+func (k Keeper) Grant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, authorization *codectypes.Any, expiration int64) {
 	store := ctx.KVStore(k.storeKey)
+
+	var authorization1 types.AuthorizationI
+	err := k.cdc.UnpackAny(authorization, &authorization1)
+	if err != nil {
+		return
+	}
+
 	bz := k.cdc.MustMarshalBinaryBare(&types.AuthorizationGrant{Authorization: authorization, Expiration: expiration})
-	actor := k.getActorAuthorizationKey(grantee, granter, authorization.GetAuthorizationI().MsgType())
+	actor := k.getActorAuthorizationKey(grantee, granter, authorization1.MsgType())
 	store.Set(actor, bz)
 }
 
@@ -120,9 +135,18 @@ func (k Keeper) GetAuthorization(ctx sdk.Context, grantee sdk.AccAddress, grante
 	if !found {
 		return nil, 0
 	}
+
 	if grant.Expiration != 0 && grant.Expiration < (ctx.BlockHeader().Time.Unix()) {
 		k.Revoke(ctx, grantee, granter, msgType)
 		return nil, 0
 	}
-	return grant.Authorization.GetAuthorizationI(), grant.Expiration
+
+	var authorization types.AuthorizationI
+	err := k.cdc.UnpackAny(grant.Authorization, &authorization)
+	fmt.Println("err:", err)
+	if err != nil {
+		return nil, 0
+	}
+
+	return authorization, grant.Expiration
 }
