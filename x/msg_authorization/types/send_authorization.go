@@ -26,7 +26,7 @@ func (authorization SendAuthorization) Accept(msg sdk.Msg, block abci.Header) (a
 			return true, nil, true
 		}
 
-		authorization, err := ConvertToAny(SendAuthorization{SpendLimit: limitLeft})
+		authorization, err := ConvertToAny(&SendAuthorization{SpendLimit: limitLeft})
 		if err != nil {
 			return false, nil, false
 		}
