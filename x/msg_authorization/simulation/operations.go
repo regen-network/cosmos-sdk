@@ -196,7 +196,7 @@ func SimulateMsgExecAuthorization(ak types.AccountKeeper, bk types.BankKeeper, k
 		}
 
 		msgs := []sdk.Msg{
-			bank.MsgSend{
+			&bank.MsgSend{
 				Amount:      sdk.NewCoins(sdk.NewInt64Coin(denom, 2)),
 				FromAddress: granterAcc.Address,
 				ToAddress:   recipientAcc.Address,
@@ -215,7 +215,7 @@ func SimulateMsgExecAuthorization(ak types.AccountKeeper, bk types.BankKeeper, k
 		}
 
 		tx := helpers.GenTx(
-			[]sdk.Msg{msgExecAuthorization},
+			[]sdk.Msg{&msgExecAuthorization},
 			fees,
 			helpers.DefaultGenTxGas,
 			chainID,
@@ -230,6 +230,6 @@ func SimulateMsgExecAuthorization(ak types.AccountKeeper, bk types.BankKeeper, k
 			return simtypes.NoOpMsg(types.ModuleName, msgExecAuthorization.Type(), ""), nil, err
 		}
 
-		return simtypes.NewOperationMsg(msgExecAuthorization, true, ""), nil, nil
+		return simtypes.NewOperationMsg(&msgExecAuthorization, true, ""), nil, nil
 	}
 }
