@@ -17,7 +17,7 @@ func (authorization SendAuthorization) MsgType() string {
 
 func (authorization SendAuthorization) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated *codectypes.Any, delete bool) {
 	switch msg := msg.(type) {
-	case bank.MsgSend:
+	case *bank.MsgSend:
 		limitLeft, isNegative := authorization.SpendLimit.SafeSub(msg.Amount)
 		if isNegative {
 			return false, nil, false
@@ -28,7 +28,7 @@ func (authorization SendAuthorization) Accept(msg sdk.Msg, block abci.Header) (a
 
 		authorization, err := ConvertToAny(SendAuthorization{SpendLimit: limitLeft})
 		if err != nil {
-			return true, nil, true
+			return false, nil, false
 		}
 
 		return true, authorization, false
@@ -36,7 +36,7 @@ func (authorization SendAuthorization) Accept(msg sdk.Msg, block abci.Header) (a
 	return false, nil, false
 }
 
-// ConvertToAny converts interface(types.AuthorizationI) type to any
+// ConvertToAny converts interface(types.AuthorizationI) to any
 func ConvertToAny(authorization AuthorizationI) (*codectypes.Any, error) {
 	msg, ok := authorization.(proto.Message)
 	if !ok {

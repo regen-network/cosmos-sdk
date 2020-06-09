@@ -117,7 +117,7 @@ func (s *TestSuite) TestKeeperFees() {
 	}
 
 	err = msgs.SetMsgs([]sdk.Msg{
-		bank.MsgSend{
+		&bank.MsgSend{
 			Amount:      sdk.NewCoins(sdk.NewInt64Coin("steak", 2)),
 			FromAddress: granterAddr,
 			ToAddress:   recipientAddr,
@@ -159,7 +159,7 @@ func (s *TestSuite) TestKeeperFees() {
 		Grantee: granteeAddr,
 	}
 	msgs.SetMsgs([]sdk.Msg{
-		bank.MsgSend{
+		&bank.MsgSend{
 			Amount:      someCoin,
 			FromAddress: granterAddr,
 			ToAddress:   recipientAddr,

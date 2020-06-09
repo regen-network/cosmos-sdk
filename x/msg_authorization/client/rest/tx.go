@@ -6,16 +6,16 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	"github.com/cosmos/cosmos-sdk/x/msg_authorization/types"
 )
 
-func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	r.HandleFunc("/msg_authorization/grant", grantHandler(cliCtx)).Methods("POST")
-	r.HandleFunc("/msg_authorization/revoke", revokeHandler(cliCtx)).Methods("POST")
+func registerTxRoutes(clientCtx client.Context, r *mux.Router) {
+	r.HandleFunc("/msg_authorization/grant", grantHandler(clientCtx)).Methods("POST")
+	r.HandleFunc("/msg_authorization/revoke", revokeHandler(clientCtx)).Methods("POST")
 }
 
 type GrantRequest struct {
@@ -33,11 +33,11 @@ type RevokeRequest struct {
 	AuthorizationMsgType string         `json:"authorization_msg_type"`
 }
 
-func grantHandler(cliCtx context.CLIContext) http.HandlerFunc {
+func grantHandler(clientCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req GrantRequest
 
-		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
+		if !rest.ReadRESTReq(w, r, clientCtx.Codec, &req) {
 			return
 		}
 
@@ -57,15 +57,15 @@ func grantHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
+		authclient.WriteGenerateStdTxResponse(w, clientCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }
 
-func revokeHandler(cliCtx context.CLIContext) http.HandlerFunc {
+func revokeHandler(clientCtx client.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req RevokeRequest
 
-		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
+		if !rest.ReadRESTReq(w, r, clientCtx.Codec, &req) {
 			return
 		}
 
@@ -80,6 +80,6 @@ func revokeHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		authclient.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
+		authclient.WriteGenerateStdTxResponse(w, clientCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }
