@@ -10,11 +10,11 @@ func NewHandler(k Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx = ctx.WithEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
-		case MsgGrantAuthorization:
+		case *MsgGrantAuthorization:
 			return handleMsgGrantAuthorization(ctx, msg, k)
-		case MsgRevokeAuthorization:
+		case *MsgRevokeAuthorization:
 			return handleMsgRevokeAuthorization(ctx, msg, k)
-		case MsgExecAuthorized:
+		case *MsgExecAuthorized:
 			return handleMsgExecAuthorized(ctx, msg, k)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized authorization message type: %T", msg)
@@ -22,7 +22,7 @@ func NewHandler(k Keeper) sdk.Handler {
 	}
 }
 
-func handleMsgGrantAuthorization(ctx sdk.Context, msg MsgGrantAuthorization, k Keeper) (*sdk.Result, error) {
+func handleMsgGrantAuthorization(ctx sdk.Context, msg *MsgGrantAuthorization, k Keeper) (*sdk.Result, error) {
 	var authorization types.AuthorizationI
 	// err := k.GetCodec().UnpackAny(msg.Authorization, &authorization)
 	err := ModuleCdc.UnpackAny(msg.Authorization, &authorization)
@@ -45,7 +45,7 @@ func handleMsgGrantAuthorization(ctx sdk.Context, msg MsgGrantAuthorization, k K
 	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func handleMsgRevokeAuthorization(ctx sdk.Context, msg MsgRevokeAuthorization, k Keeper) (*sdk.Result, error) {
+func handleMsgRevokeAuthorization(ctx sdk.Context, msg *MsgRevokeAuthorization, k Keeper) (*sdk.Result, error) {
 	err := k.Revoke(ctx, msg.Grantee, msg.Granter, msg.AuthorizationMsgType)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func handleMsgRevokeAuthorization(ctx sdk.Context, msg MsgRevokeAuthorization, k
 	return &sdk.Result{Events: ctx.EventManager().ABCIEvents()}, nil
 }
 
-func handleMsgExecAuthorized(ctx sdk.Context, msg MsgExecAuthorized, k Keeper) (*sdk.Result, error) {
+func handleMsgExecAuthorized(ctx sdk.Context, msg *MsgExecAuthorized, k Keeper) (*sdk.Result, error) {
 	var msgs []sdk.Msg
 	for _, msgItem := range msg.Msgs {
 		var msgInfo sdk.Msg
