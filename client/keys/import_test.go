@@ -25,7 +25,7 @@ func Test_runImportCmd(t *testing.T) {
 	kbHome := t.TempDir()
 	kb, err := keyring.New(sdk.KeyringServiceName(), keyring.BackendTest, kbHome, mockIn)
 
-	clientCtx := client.Context{}.WithKeyring(kb)
+	clientCtx := client.Context{}.WithKeyring(kb).WithKeyringDir(kbHome)
 	ctx := context.WithValue(context.Background(), client.ClientContextKey, &clientCtx)
 
 	require.NoError(t, err)
