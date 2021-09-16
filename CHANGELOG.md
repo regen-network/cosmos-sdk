@@ -35,7 +35,11 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 # Changelog
 
-## [Unreleased]
+## v0.44.0-regen-1
+
+### Features
+
+* [#42](https://github.com/regen-network/cosmos-sdk/pull/42) Add `MsgCreatePermanentLockedAccount` and CLI method for creating permanent locked account.
 
 ## [v0.44.0](https://github.com/cosmos/cosmos-sdk/releases/tag/v0.44.0) - 2021-09-01
 
@@ -58,13 +62,6 @@ Ref: https://keepachangelog.com/en/1.0.0/
 ### Client Breaking Changes
 
 * [\#10041](https://github.com/cosmos/cosmos-sdk/pull/10041) Remove broadcast & encode legacy REST endpoints. Please see the [REST Endpoints Migration guide](https://docs.cosmos.network/master/migrations/rest.html) to migrate to the new REST endpoints.
-
-## v0.43.0-regen-1
-
-### Features
-
-- [#42](https://github.com/regen-network/cosmos-sdk/pull/42) Add `MsgCreatePermanentLockedAccount` and CLI method
-for creating permanent locked account
 
 ## [v0.43.0](https://github.com/cosmos/cosmos-sdk/releases/tag/v0.43.0) - 2021-08-10
 
