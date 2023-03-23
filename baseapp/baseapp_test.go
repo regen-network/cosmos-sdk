@@ -1928,7 +1928,7 @@ func TestLoadSnapshotChunk(t *testing.T) {
 	}{
 		"Existing snapshot": {2, snapshottypes.CurrentFormat, 1, false},
 		"Missing height":    {100, snapshottypes.CurrentFormat, 1, true},
-		"Missing format":    {2, snapshottypes.CurrentFormat + 1, 1, true},
+		"Missing format":    {2, 4, 1, true},
 		"Missing chunk":     {2, snapshottypes.CurrentFormat, 9, true},
 		"Zero height":       {0, snapshottypes.CurrentFormat, 1, true},
 		"Zero format":       {2, 0, 1, true},
