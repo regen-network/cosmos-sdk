@@ -3,6 +3,7 @@ package tx
 import (
 	"bufio"
 	"context"
+  b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -297,7 +298,12 @@ func Sign(txf Factory, name string, txBuilder client.TxBuilder, overwriteSig boo
 	}
 
 	// Generate the bytes to be signed.
-	bytesToSign, err := txf.txConfig.SignModeHandler().GetSignBytes(signMode, signerData, txBuilder.GetTx())
+  fmt.Println("Signing transaction...")
+  fmt.Printf("    Sign Mode: %s\n", signMode.String())
+  fmt.Printf("    Signer Data: %s\n", signerData)
+  bytesToSign, err := txf.txConfig.SignModeHandler().GetSignBytes(signMode, signerData, txBuilder.GetTx())
+  fmt.Printf("    Sign Bytes (str): %s\n", bytesToSign)
+  fmt.Printf("    Sign Bytes (base64): %s\n", b64.StdEncoding.EncodeToString(bytesToSign))
 	if err != nil {
 		return err
 	}

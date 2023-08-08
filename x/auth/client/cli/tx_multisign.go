@@ -137,6 +137,9 @@ func makeMultiSignCmd() func(cmd *cobra.Command, args []string) (err error) {
 					PubKey:        sig.PubKey,
 				}
 
+        fmt.Println("Verifying signature...")
+        fmt.Printf("    Sign Mode: %s\n", sig.Data.(*signingtypes.SingleSignatureData).SignMode.String())
+        fmt.Printf("    Signer Data: %s\n", signingData)
 				err = signing.VerifySignature(sig.PubKey, signingData, sig.Data, txCfg.SignModeHandler(), txBuilder.GetTx())
 				if err != nil {
 					addr, _ := sdk.AccAddressFromHexUnsafe(sig.PubKey.Address().String())

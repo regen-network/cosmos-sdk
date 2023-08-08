@@ -3,6 +3,7 @@ package signing
 import (
 	"fmt"
 
+  b64 "encoding/base64"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,6 +16,8 @@ func VerifySignature(pubKey cryptotypes.PubKey, signerData SignerData, sigData s
 	switch data := sigData.(type) {
 	case *signing.SingleSignatureData:
 		signBytes, err := handler.GetSignBytes(data.SignMode, signerData, tx)
+    fmt.Printf("Sign Bytes (str): %s\n", signBytes)
+    fmt.Printf("Sign Bytes (base64): %s\n", b64.StdEncoding.EncodeToString(signBytes))
 		if err != nil {
 			return err
 		}
