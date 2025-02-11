@@ -921,3 +921,8 @@ func (app *BaseApp) ProcessProposalVerifyTx(txBz []byte) (sdk.Tx, error) {
 func (app *BaseApp) Close() error {
 	return nil
 }
+
+// ChainID returns the chainID of the BaseApp.
+func (app *BaseApp) ChainID() string {
+	return app.chainID
+}
